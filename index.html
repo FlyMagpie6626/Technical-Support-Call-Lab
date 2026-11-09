@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Support Call Lab</title>
+    <style>
+        :root {
+            --bg-primary: #f5f5f7;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent: #0071e3;
+            --accent-hover: #0077ed;
+            --border: rgba(0, 0, 0, 0.1);
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --success: #34c759;
+            --warning: #ff9500;
+            --danger: #ff3b30;
+            --card-radius: 18px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #000000;
+                --bg-card: rgba(28, 28, 30, 0.9);
+                --text-primary: #f5f5f7;
+                --text-secondary: #86868b;
+                --accent: #2997ff;
+                --accent-hover: #0077ed;
+                --border: rgba(255, 255, 255, 0.15);
+                --shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow);
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header .subtitle {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .region-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: rgba(0, 113, 227, 0.1);
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* Screens */
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* Menu */
+        .difficulty-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .diff-card {
+            background: rgba(125, 125, 125, 0.05);
+            border: 2px solid transparent;
+            border-radius: 14px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .diff-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .diff-card.selected {
+            border-color: var(--accent);
+            background: rgba(0, 113, 227, 0.08);
+        }
+
+        .diff-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .diff-card p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .scenario-list {
+            margin: 16px 0;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .scenario-item {
+            background: rgba(125, 125, 125, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .scenario-item:hover, .scenario-item.selected {
+            border-color: var(--accent);
+            background: rgba(0, 113, 227, 0.05);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .btn:hover { background: var(--accent-hover); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Gameplay Call Dashboard */
+        .call-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(125, 125, 125, 0.08);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .customer-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .mood-tag {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .mood-cooperative, .mood-delighted, .mood-relieved { background: rgba(52, 199, 89, 0.2); color: var(--success); }
+        .mood-confused, .mood-worried, .mood-skeptical, .mood-neutral { background: rgba(255, 149, 0, 0.2); color: var(--warning); }
+        .mood-impatient, .mood-angry, .mood-frustrated { background: rgba(255, 59, 48, 0.2); color: var(--danger); }
+
+        .scores-ticker {
+            display: flex;
+            gap: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .chat-box {
+            background: rgba(125, 125, 125, 0.05);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .dialogue {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 6px;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: left;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            line-height: 1.4;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--accent);
+            background: rgba(0, 113, 227, 0.05);
+        }
+
+        .option-btn.selected-perfect { border-color: var(--success) !important; background: rgba(52, 199, 89, 0.12) !important; }
+        .option-btn.selected-soso { border-color: var(--warning) !important; background: rgba(255, 149, 0, 0.12) !important; }
+        .option-btn.selected-wrong { border-color: var(--danger) !important; background: rgba(255, 59, 48, 0.12) !important; }
+
+        .coaching-card {
+            background: rgba(125, 125, 125, 0.08);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--accent);
+            display: none;
+        }
+
+        .coaching-card h4 {
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .coaching-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Report Screen */
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            font-size: 2.3rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin: 8px 0;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .skill-stat {
+            background: rgba(125, 125, 125, 0.05);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .skill-stat span {
+            display: block;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-top: 2px;
+        }
+
+        .coaching-plan {
+            background: rgba(125, 125, 125, 0.05);
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="subtitle">Apple Support · Technical Advisor Training</div>
+        <h1>Apple Support Call Lab</h1>
+        <p>“Every call is an opportunity.”</p>
+        <div class="region-badge">EMEIA Operations Region</div>
+    </div>
+
+    <!-- Main Menu Screen -->
+    <div id="screen-menu" class="screen active">
+        <p style="margin-bottom: 10px; font-weight: 600; color: var(--text-secondary); font-size: 0.9rem;">Select Difficulty Level:</p>
+        <div class="difficulty-selector">
+            <div class="diff-card selected" onclick="selectDifficulty('easy', this)">
+                <h3>Easy</h3>
+                <p>Standard L1 inquiries, password recoveries, basic sync & billing questions (7 Stages).</p>
+            </div>
+            <div class="diff-card" onclick="selectDifficulty('medium', this)">
+                <h3>Medium</h3>
+                <p>Multi-device sync, storage upgrades, hardware diagnostics & frustrated customers (7 Stages).</p>
+            </div>
+            <div class="diff-card" onclick="selectDifficulty('hard', this)">
+                <h3>Hard</h3>
+                <p>Security breaches, phishing attacks, hostile escalations & strict policy enforcement (7 Stages).</p>
+            </div>
+        </div>
+
+        <p style="margin-bottom: 10px; font-weight: 600; color: var(--text-secondary); font-size: 0.9rem;">Select EMEIA Scenario:</p>
+        <div id="scenario-list" class="scenario-list"></div>
+
+        <button class="btn" onclick="startSimulation()">Start Full 7-Stage Call Simulation</button>
+    </div>
+
+    <!-- Gameplay Screen -->
+    <div id="screen-game" class="screen">
+        <div class="call-bar">
+            <div class="customer-info">
+                <div id="cust-avatar" class="avatar">UK</div>
+                <div>
+                    <div id="cust-name" style="font-weight: 600;">Customer</div>
+                    <div id="cust-region" style="font-size: 0.75rem; color: var(--text-secondary);">London, UK</div>
+                </div>
+                <span id="cust-mood" class="mood-tag mood-neutral">Neutral</span>
+            </div>
+            <div class="scores-ticker">
+                <div>EMP: <span id="tick-emp">0</span></div>
+                <div>OWN: <span id="tick-own">0</span></div>
+                <div>TEC: <span id="tick-tec">0</span></div>
+                <div>COM: <span id="tick-com">0</span></div>
+            </div>
+        </div>
+
+        <div class="chat-box">
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;" id="stage-indicator">Stage 1 of 7</div>
+            <div id="customer-statement" class="dialogue">"Customer statement loads here..."</div>
+        </div>
+
+        <div id="options-container" class="options-list"></div>
+
+        <div id="coaching-box" class="coaching-card">
+            <h4 id="coaching-title">Coaching Feedback</h4>
+            <p id="coaching-text"></p>
+        </div>
+
+        <button id="next-btn" class="btn" style="display: none;" onclick="nextStage()">Continue to Next Stage</button>
+    </div>
+
+    <!-- End-of-Call Report Screen -->
+    <div id="screen-report" class="screen">
+        <div class="report-header">
+            <h2>Call Performance Summary</h2>
+            <div id="final-grade" class="grade-badge">100%</div>
+            <p id="final-rating" style="font-weight: 600; font-size: 1.05rem; color: var(--text-primary);">Outstanding Advisor</p>
+        </div>
+
+        <div class="skills-grid">
+            <div class="skill-stat">Empathy <span><span id="rep-emp">0</span> / 35</span></div>
+            <div class="skill-stat">Ownership <span><span id="rep-own">0</span> / 35</span></div>
+            <div class="skill-stat">Technical Knowledge <span><span id="rep-tec">0</span> / 35</span></div>
+            <div class="skill-stat">Communication <span><span id="rep-com">0</span> / 35</span></div>
+        </div>
+
+        <div class="coaching-plan">
+            <h4 style="margin-bottom: 4px; font-weight: 600;">Personalized Coaching Feedback:</h4>
+            <p id="personalized-coaching">Evaluating performance metrics...</p>
+        </div>
+
+        <button class="btn" onclick="restartLab()">Return to Main Menu</button>
+    </div>
+</div>
+
+<script>
+    const build7StageScenario = (title, region, initials, flow) => ({
+        title, region, initials,
+        stages: [
+            { stageTitle: "Stage 1: Greeting & Verification", statement: flow.s1.q, choices: flow.s1.c },
+            { stageTitle: "Stage 2: Issue Probing & Listening", statement: flow.s2.q, choices: flow.s2.c },
+            { stageTitle: "Stage 3: Technical Isolation", statement: flow.s3.q, choices: flow.s3.c },
+            { stageTitle: "Stage 4: Security & Compliance", statement: flow.s4.q, choices: flow.s4.c },
+            { stageTitle: "Stage 5: Step-by-Step Resolution", statement: flow.s5.q, choices: flow.s5.c },
+            { stageTitle: "Stage 6: Reassurance & Verification", statement: flow.s6.q, choices: flow.s6.c },
+            { stageTitle: "Stage 7: Professional Call Closure", statement: flow.s7.q, choices: flow.s7.c }
+        ]
+    });
+
+    const scenarios = {
+        easy: [
+            build7StageScenario("Apple Account Password Recovery", "London, United Kingdom", "UK", {
+                s1: { q: "Hi, my name is Sarah Jenkins. I locked myself out of my Apple Account and I'm panicking!", c: [
+                    { text: "Thank you for calling Apple Support, Sarah. I completely understand how stressful this is, but you're in good hands. May I verify your email address?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Perfect greeting! Warm, empathetic, and established verification." },
+                    { text: "Yeah hi. What is your password so I can unlock it?", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Never ask for customer passwords!" },
+                    { text: "Hello Sarah. Password locks happen all the time. What email is on the account?", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Acceptable, but missing strong empathy." }
+                ]},
+                s2: { q: "My email is sarah.j@example.co.uk. Will I lose all my family photos stored in iCloud?", c: [
+                    { text: "Rest assured, Sarah, your photos stored in iCloud remain completely safe while your account is locked.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Great reassurance! Addressed core emotional concern directly." },
+                    { text: "I don't know, maybe. Let's try resetting first.", type: "wrong", scores: {emp:0, own:1, tec:0, com:1}, mood: "worried", feedback: "Causes unnecessary anxiety." },
+                    { text: "Photos usually don't get deleted during password locks.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Vague response." }
+                ]},
+                s3: { q: "Thank goodness! Are you able to see if my device is connected to Wi-Fi right now?", c: [
+                    { text: "Let's check if your device can receive verification codes by ensuring it's connected to Wi-Fi or cellular data.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Accurate technical isolation step." },
+                    { text: "Wi-Fi doesn't matter for password resets at all.", type: "wrong", scores: {emp:0, own:0, tec:0, com:1}, mood: "confused", feedback: "Incorrect. Internet connection is required for authentication." },
+                    { text: "Turn off your Wi-Fi and use cellular data only.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Unnecessary restriction." }
+                ]},
+                s4: { q: "It's asking me for a 2-factor authentication code on screen. Can I give it to you?", c: [
+                    { text: "For your security, please enter that code directly into your device screen. Apple staff will never ask for your 2FA code.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Strict adherence to Apple Security Compliance!" },
+                    { text: "Sure, read the 6-digit code to me over the phone.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Major security compliance violation!" },
+                    { text: "Just type it in on your phone, don't tell me.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Correct direction, but missed explaining the security reasoning." }
+                ]},
+                s5: { q: "Okay, I entered it and now it's prompting me to set a new password. What are the requirements?", c: [
+                    { text: "Your new password must be at least 8 characters long, containing an uppercase letter, a lowercase letter, and a number.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Clear, precise technical guidance." },
+                    { text: "Just type whatever you want.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Unhelpful and inaccurate." },
+                    { text: "Make it long with numbers and letters.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Lacks exact requirement criteria." }
+                ]},
+                s6: { q: "Awesome, it accepted my new password! Am I completely back in?", c: [
+                    { text: "Yes! Let's make sure you can test signing into iCloud in Settings right now to verify everything is working smoothly.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Great verification of resolution!" },
+                    { text: "You're good. Bye.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "confused", feedback: "Rushed call experience." },
+                    { text: "You should be back in now.", type: "soso", scores: {emp:2, own:3, tec:3, com:2}, mood: "neutral", feedback: "Did not verify resolution with customer." }
+                ]},
+                s7: { q: "It worked! All my photos are syncing! Thank you so much for your help today.", c: [
+                    { text: "It was my absolute pleasure, Sarah! Thank you for choosing Apple Support. Have a wonderful rest of your day in London!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Warm, professional, branded call closure!" },
+                    { text: "Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt closure." },
+                    { text: "Glad it worked. Thanks for calling.", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing, could be warmer." }
+                ]}
+            }),
+            build7StageScenario("AirPods Pairing Assistance", "Dublin, Ireland", "IE", {
+                s1: { q: "Hello, my name is Liam. My new AirPods won't connect to my iPhone.", c: [
+                    { text: "Welcome to Apple Support, Liam! I'd be happy to help you get your new AirPods paired today. May I verify your full name and serial number?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Excellent professional greeting." },
+                    { text: "What's wrong with the AirPods?", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "impatient", feedback: "Abrupt tone." },
+                    { text: "Hi Liam, let's fix your AirPods. Can you tell me your phone model?", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Good, but missed formal greeting protocol." }
+                ]},
+                s2: { q: "It's an iPhone 15. The popup box just isn't appearing when I open the lid.", c: [
+                    { text: "Got it. Let's make sure Bluetooth is turned on in your iPhone Settings and that both AirPods are seated in the charging case.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Logical L1 isolation step." },
+                    { text: "They must be broken. Return them to the store.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Jumped to hardware replacement without basic troubleshooting." },
+                    { text: "Restart your phone first.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Generic troubleshooting step." }
+                ]},
+                s3: { q: "Bluetooth is on, but still nothing happens when I open the lid next to the phone.", c: [
+                    { text: "Let's place the AirPods in the case, keep the lid open, and press and hold the setup button on the back for 15 seconds until the status light flashes amber then white.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Exact technical reset procedure!" },
+                    { text: "Try taking them in and out of the case repeatedly.", type: "wrong", scores: {emp:0, own:0, tec:0, com:1}, mood: "confused", feedback: "Unhelpful step." },
+                    { text: "Hold the back button until something flashes.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Imprecise instructions." }
+                ]},
+                s4: { q: "The light turned white! Does this mean the AirPods are ready for pairing?", c: [
+                    { text: "Yes! That white flashing light indicates your AirPods are now in pairing mode. Bring them close to your iPhone.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Clear validation of device state." },
+                    { text: "Maybe, try waiting a few minutes.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Displays lack of technical knowledge." },
+                    { text: "Yeah, that's pairing mode.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Short response." }
+                ]},
+                s5: { q: "The setup animation popped up on my iPhone screen! Should I tap Connect?", c: [
+                    { text: "Yes, please tap Connect on your iPhone screen. It will pair automatically across all devices signed into your Apple Account.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Proactive feature explanation!" },
+                    { text: "Don't tap it yet, wait.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Hinder resolution." },
+                    { text: "Yes, hit connect.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Missed value-add detail." }
+                ]},
+                s6: { q: "They are connected now and playing music perfectly! Is there anything else I need to configure?", c: [
+                    { text: "You're all set! You can customize press actions and spatial audio in Settings > AirPods anytime.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Proactive user education." },
+                    { text: "No, nothing.", type: "wrong", scores: {emp:0, own:0, tec:1, com: 0}, mood: "neutral", feedback: "Missed opportunity for guidance." },
+                    { text: "You can tweak audio settings later if you want.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Vague feedback." }
+                ]},
+                s7: { q: "You made that so easy, thank you!", c: [
+                    { text: "You are very welcome, Liam! Thank you for calling Apple Support. Enjoy your new AirPods and have a great day!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Warm and professional closure." },
+                    { text: "Bye Liam.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Too informal." },
+                    { text: "Thanks for calling Apple. Goodbye!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closure." }
+                ]}
+            }),
+            build7StageScenario("App Store Billing Query", "Paris, France", "FR", {
+                s1: { q: "Bonjour, my name is Pierre. I received an email invoice for 9.99 € from Apple, but I don't remember buying anything.", c: [
+                    { text: "Bonjour Pierre! Thank you for contacting Apple Support. I'd be glad to help look into this 9.99 € charge with you. May I verify your Apple Account email?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Polite, empathetic, verified identity." },
+                    { text: "We don't handle billing. Call your credit card company.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Refused assistance." },
+                    { text: "Hi Pierre, what is your email so I can check?", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Direct, but lacks empathy." }
+                ]},
+                s2: { q: "My email is pierre.d@example.fr. I am worried my credit card details were stolen!", c: [
+                    { text: "I understand your concern, Pierre. Let's check your official Purchase History together in Media & Purchases before worrying about card theft.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "De-escalated security fear with clear action." },
+                    { text: "Yes, your card was definitely stolen.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Spreads unnecessary panic." },
+                    { text: "Charges happen. Check your bank app.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Not using Apple L1 tools." }
+                ]},
+                s3: { q: "Okay, I opened Purchase History. It says 'Apple Music Individual Monthly'.", c: [
+                    { text: "Ah! That indicates an active monthly subscription for Apple Music. Did you recently start a 30-day free trial?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Accurate billing root cause identified." },
+                    { text: "Someone else bought it on your card.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Incorrect conclusion." },
+                    { text: "That's for music streaming.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Brief statement without probing trial status." }
+                ]},
+                s4: { q: "Oh! I did sign up for a trial last month! How can I cancel it so I don't get billed next month?", c: [
+                    { text: "You can cancel it directly on your iPhone in Settings > Apple Account > Subscriptions > Apple Music > Cancel Subscription.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Clear step-by-step navigation." },
+                    { text: "You can't cancel subscriptions once billed.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "False policy statement!" },
+                    { text: "Look under subscription settings online.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Vague path." }
+                ]},
+                s5: { q: "I tapped Cancel Subscription. Does it stop immediately?", c: [
+                    { text: "You will continue to have access to Apple Music until the end of the current billing cycle, but you won't be charged again.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Accurate subscription lifecycle explanation." },
+                    { text: "It stops right this second and deletes your playlists.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Misinformation." },
+                    { text: "Yes, it is canceled.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Missed key details about access period." }
+                ]},
+                s6: { q: "Can I also request a refund for this first 9.99 € charge since I didn't mean to renew?", c: [
+                    { text: "Yes, Pierre. You can submit a refund claim directly at reportaproblem.apple.com. Would you like me to walk you through that link?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Empowered customer with official self-service channel." },
+                    { text: "No, Apple never refunds subscription fees.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Incorrect policy statement." },
+                    { text: "Try asking on the website.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Imprecise guidance." }
+                ]},
+                s7: { q: "I submitted the refund request on the website. Thank you so much for your patience, Pierre!", c: [
+                    { text: "You are most welcome, Pierre! Thank you for choosing Apple Support. Have a wonderful day in Paris!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Polite, regional closure." },
+                    { text: "Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Have a nice day!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing." }
+                ]}
+            }),
+            build7StageScenario("iCloud Storage Full Warning", "Berlin, Germany", "DE", {
+                s1: { q: "Guten Tag, my name is Karl. My iPad keeps showing a notification saying 'iCloud Storage Full'.", c: [
+                    { text: "Guten Tag Karl! Thank you for calling Apple Support. I know seeing constant storage warnings can be annoying, but I'll be glad to help manage your iCloud storage today. May I verify your account email?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Professional greeting and clear ownership." },
+                    { text: "You need to buy more storage immediately.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "impatient", feedback: "Pushy sales approach instead of investigating." },
+                    { text: "Hi Karl, let's check your storage settings. What is your email?", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Acceptable, but lacks warmth." }
+                ]},
+                s2: { q: "My email is karl.b@example.de. Does this mean my iPad's physical 64GB storage is full?", c: [
+                    { text: "Great question, Karl! iCloud storage is separate from your iPad's internal physical storage. iCloud is your online cloud backup.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Clear explanation of technical concepts." },
+                    { text: "Yes, your iPad internal memory is completely packed.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Confused cloud storage with device storage." },
+                    { text: "No, they are different things.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Too brief." }
+                ]},
+                s3: { q: "Ah, I see! How can I check what is taking up all the space in my iCloud?", c: [
+                    { text: "On your iPad, tap Settings > [Your Name] > iCloud. You will see a color-coded bar showing photos, backups, and messages.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Exact navigation steps provided." },
+                    { text: "Plug it into a computer to find out.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Unnecessary complexity." },
+                    { text: "Look in your device settings menu.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Imprecise path." }
+                ]},
+                s4: { q: "It says Photos takes up 4.5 GB out of my free 5 GB limit. What are my options?", c: [
+                    { text: "You can either optimize photo storage/delete unwanted media, or upgrade to iCloud+ starting at 50 GB for a small monthly fee.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Balanced option presentation." },
+                    { text: "You must pay for the 2TB plan right now.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Over-selling unnecessary tiers." },
+                    { text: "Delete all your photos.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "worried", feedback: "Drastic advice." }
+                ]},
+                s5: { q: "I think upgrading to 50 GB for 0.99 € a month makes sense. How do I complete the upgrade?", c: [
+                    { text: "Tap 'Manage Account Storage' on that same iCloud screen, tap 'Change Storage Plan', select 50 GB, and confirm with your passcode.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Clear purchasing guidance." },
+                    { text: "Go to an Apple Store in Berlin to pay cash.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Inaccurate advice for digital upgrades." },
+                    { text: "Tap change plan and confirm.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Missed detailed steps." }
+                ]},
+                s6: { q: "The storage bar immediately expanded to 50 GB and the warning disappeared!", c: [
+                    { text: "Wonderful! Your iPad can now resume automatic daily backups without any storage warnings.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Validated resolution and benefits." },
+                    { text: "Okay, good.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Lacks engagement." },
+                    { text: "That was quick. Anything else?", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "A bit rushed." }
+                ]},
+                s7: { q: "Thank you for explaining everything so clearly, Karl!", c: [
+                    { text: "It was my pleasure, Karl! Thank you for contacting Apple Support. Have a fantastic day in Berlin!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Warm and courteous closing." },
+                    { text: "Goodbye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Have a good one!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Casual closing." }
+                ]}
+            })
+        ],
+        medium: [
+            build7StageScenario("MacBook Wi-Fi Drops & Diagnostics", "Madrid, Spain", "ES", {
+                s1: { q: "Hola, my name is Carlos. My MacBook Pro keeps disconnecting from Wi-Fi every 10 minutes during my online meetings!", c: [
+                    { text: "Hola Carlos! Welcome to Apple Support. I know how critical stable internet is for work meetings. I will take ownership of this to get your connection stable. May I confirm your serial number?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Strong ownership and empathy." },
+                    { text: "Your router is broken, call your internet provider.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Deflected issue without diagnostic steps." },
+                    { text: "Hi Carlos, let's troubleshoot your Mac Wi-Fi.", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Direct, but missing deep empathy." }
+                ]},
+                s2: { q: "My other devices like my iPhone stay connected to the Wi-Fi just fine, so it's definitely only happening on the Mac.", c: [
+                    { text: "That is very helpful diagnostic information, Carlos. That isolates the issue specifically to the Mac's network configurations.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Validated customer troubleshooting observation." },
+                    { text: "No, your iPhone is probably dropping connection too and you didn't notice.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Argued with customer." },
+                    { text: "Okay, good to know.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Acknowledged without technical context." }
+                ]},
+                s3: { q: "What is our first step to fix the Mac network settings?", c: [
+                    { text: "Let's start by removing the Wi-Fi network under System Settings > Network > Wi-Fi > Known Networks, and then reconnect.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Standard L1 Mac network resetting step." },
+                    { text: "Reinstall macOS from scratch right now.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Extreme and unnecessary troubleshooting step." },
+                    { text: "Turn Wi-Fi off and back on.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Basic step, usually insufficient for dropping Wi-Fi." }
+                ]},
+                s4: { q: "I re-added the network, but the signal icon still flickers. Should we run a diagnostic scan?", c: [
+                    { text: "Yes! Hold the Option key and click the Wi-Fi icon in the top menu bar, then select 'Open Wireless Diagnostics' to run a built-in analysis.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Advanced L2 diagnostic shortcut knowledge!" },
+                    { text: "Mac doesn't have network diagnostics built in.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Incorrect technical information." },
+                    { text: "Search for network diagnostic apps online.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "worried", feedback: "Unsafe recommendation." }
+                ]},
+                s5: { q: "The diagnostic report recommended renewing the DHCP lease. How do I do that?", c: [
+                    { text: "Go to System Settings > Network > Wi-Fi > Details > TCP/IP, and click 'Renew DHCP Lease'.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Exact macOS navigation provided." },
+                    { text: "Open Terminal and delete system root files.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Dangerous command prompt suggestion!" },
+                    { text: "Look under advanced IP settings.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Imprecise path." }
+                ]},
+                s6: { q: "I clicked Renew DHCP Lease, and the connection stabilized immediately! All full bars now!", c: [
+                    { text: "Excellent! We successfully refreshed your Mac's IP configuration on the network. Your meetings should run smoothly now.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Validated fix and technical explanation." },
+                    { text: "Finally.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Unprofessional." },
+                    { text: "Great, it seems fixed.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Simple acknowledgment." }
+                ]},
+                s7: { q: "Muchas gracias, Carlos! You saved my work day!", c: [
+                    { text: "It was my absolute pleasure, Carlos! Thank you for calling Apple Support. Have a wonderful day in Madrid!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Warm and courteous closing." },
+                    { text: "Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Have a good one!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Casual closing." }
+                ]}
+            }),
+            build7StageScenario("Apple Watch Battery Drain", "Rome, Italy", "IT", {
+                s1: { q: "Ciao, my name is Matteo. My Apple Watch Series 9 battery is dying in just 4 hours after the latest update!", c: [
+                    { text: "Ciao Matteo! Thank you for calling Apple Support. I know how frustrating rapid battery drain is on a device you wear all day. Let's work together to isolate this.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Empathetic and structured." },
+                    { text: "Apple Watches always have bad battery life.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Negative branding statement." },
+                    { text: "Hi Matteo, let's look at your Watch settings.", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Standard greeting." }
+                ]},
+                s2: { q: "Did the software update break my Watch's battery hardware?", c: [
+                    { text: "Following an update, background indexing can temporarily increase battery usage, or background app settings may have reset. Let's check Battery Health first.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Educated customer on post-update indexing." },
+                    { text: "Yes, updates ruin hardware.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "False technical statement." },
+                    { text: "Maybe, let's check settings.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Vague answer." }
+                ]},
+                s3: { q: "Battery Health under Settings > Battery shows 98% Maximum Capacity.", c: [
+                    { text: "98% capacity confirms your battery hardware is healthy! This indicates software or background activity is causing the battery drain.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Isolated hardware vs software cause accurately." },
+                    { text: "98% is terrible, you need a new watch.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Inaccurate hardware assessment." },
+                    { text: "Hardware is okay then.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Brief confirmation." }
+                ]},
+                s4: { q: "What background settings should we adjust to stop the fast draining?", c: [
+                    { text: "On your iPhone Watch app, let's manage Background App Refresh and turn off unnecessary Always-On display features for non-essential apps.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Actionable software battery optimization steps." },
+                    { text: "Turn off the watch and don't use it for 3 days.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Unhelpful advice." },
+                    { text: "Dim your screen brightness all the way down.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Partial solution." }
+                ]},
+                s5: { q: "Should we also restart both the Apple Watch and paired iPhone?", c: [
+                    { text: "Yes, restarting both devices clears temporary system cache and completes post-update background background tasks.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Best practice pairing troubleshooting." },
+                    { text: "No, restarting makes battery drain worse.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Incorrect statement." },
+                    { text: "Sure, give it a try.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Lacks conviction." }
+                ]},
+                s6: { q: "I restarted both and turned off background refresh for third-party apps. It's holding charge much better now!", c: [
+                    { text: "That is fantastic news! Monitor it over the next 24 hours as post-update indexing finishes completely.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Provided realistic follow-up expectation." },
+                    { text: "Great, bye.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Good to hear it's better.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Standard response." }
+                ]},
+                s7: { q: "Grazie, Matteo! Excellent support!", c: [
+                    { text: "You're very welcome, Matteo! Thank you for choosing Apple Support. Have a wonderful day in Rome!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Polite regional closing." },
+                    { text: "Arrivederci.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Too brief." },
+                    { text: "Bye!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Casual closing." }
+                ]}
+            }),
+            build7StageScenario("iCloud Photo Sync Stuck", "Amsterdam, Netherlands", "NL", {
+                s1: { q: "Hoi, my name is Jan. Photos taken on my iPhone aren't appearing on my Mac anymore.", c: [
+                    { text: "Hoi Jan! Thank you for reaching out to Apple Support. I'd be glad to help get your iCloud Photos syncing seamlessly between your iPhone and Mac again.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Warm greeting and problem statement alignment." },
+                    { text: "iCloud sync breaks all the time.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "impatient", feedback: "Negative attitude." },
+                    { text: "Hi Jan, let's check your photo settings.", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Standard opening." }
+                ]},
+                s2: { q: "Is it because my devices are on different Apple Accounts?", c: [
+                    { text: "That could very well be! iCloud sync requires both devices to be signed into the exact same Apple Account. Let's verify the email on both.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Identified potential configuration mismatch." },
+                    { text: "Apple Accounts don't matter for sync.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "False technical statement." },
+                    { text: "Maybe, check your settings.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Vague feedback." }
+                ]},
+                s3: { q: "Both devices are signed into jan.v@example.nl. What else could pause photo syncing?", c: [
+                    { text: "Check if Low Power Mode is enabled on your iPhone, or if iCloud Photos status in the Photos App says 'Syncing Paused'.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Accurate L1 sync pause causes identified." },
+                    { text: "You need to buy a new iPhone.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Unnecessary hardware upsell." },
+                    { text: "Restart your Wi-Fi router.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Generic troubleshooting step." }
+                ]},
+                s4: { q: "Ah! Low Power Mode was turned on, and it says 'Sync Paused to Save Battery' at the bottom of Photos!", c: [
+                    { text: "That explains it! Turning off Low Power Mode or tapping 'Resume Sync' will immediately start transferring your photos.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Resolved root cause accurately." },
+                    { text: "Never use Low Power Mode ever again.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Bad advice regarding built-in iOS features." },
+                    { text: "Turn off Low Power Mode in battery settings.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Direct instruction." }
+                ]},
+                s5: { q: "I tapped Resume Sync. How can I confirm the Mac is receiving them?", c: [
+                    { text: "Open the Photos app on your Mac and look at the bottom of the 'Library' tab. You will see a progress bar indicating incoming items.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Clear macOS Photos navigation provided." },
+                    { text: "You can't check status on Mac.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "False statement." },
+                    { text: "Just wait an hour.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Lacks verification step." }
+                ]},
+                s6: { q: "I see 'Updating just now' on my Mac and my latest photos appeared! Everything is synced!", c: [
+                    { text: "Perfect! Your iCloud Photo Library is operating normally again across your Apple ecosystem.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Validated resolution." },
+                    { text: "Great.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Glad it's working.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Basic acknowledgment." }
+                ]},
+                s7: { q: "Thank you for finding the issue so fast, Jan!", c: [
+                    { text: "You're very welcome, Jan! Thank you for choosing Apple Support. Enjoy the rest of your day in Amsterdam!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Warm and courteous closure." },
+                    { text: "Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Have a nice day!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing." }
+                ]}
+            })
+        ],
+        medium: [
+            build7StageScenario("MacBook Wi-Fi Drops & Diagnostics", "Madrid, Spain", "ES", {
+                s1: { q: "Hola, my name is Carlos. My MacBook Pro keeps disconnecting from Wi-Fi every 10 minutes during my online meetings!", c: [
+                    { text: "Hola Carlos! Welcome to Apple Support. I know how critical stable internet is for work meetings. I will take ownership of this to get your connection stable. May I confirm your serial number?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Strong ownership and empathy." },
+                    { text: "Your router is broken, call your internet provider.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Deflected issue without diagnostic steps." },
+                    { text: "Hi Carlos, let's troubleshoot your Mac Wi-Fi.", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Direct, but missing deep empathy." }
+                ]},
+                s2: { q: "My other devices like my iPhone stay connected to the Wi-Fi just fine, so it's definitely only happening on the Mac.", c: [
+                    { text: "That is very helpful diagnostic information, Carlos. That isolates the issue specifically to the Mac's network configurations.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Validated customer troubleshooting observation." },
+                    { text: "No, your iPhone is probably dropping connection too and you didn't notice.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Argued with customer." },
+                    { text: "Okay, good to know.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Acknowledged without technical context." }
+                ]},
+                s3: { q: "What is our first step to fix the Mac network settings?", c: [
+                    { text: "Let's start by removing the Wi-Fi network under System Settings > Network > Wi-Fi > Known Networks, and then reconnect.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Standard L1 Mac network resetting step." },
+                    { text: "Reinstall macOS from scratch right now.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Extreme and unnecessary troubleshooting step." },
+                    { text: "Turn Wi-Fi off and back on.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Basic step, usually insufficient for dropping Wi-Fi." }
+                ]},
+                s4: { q: "I re-added the network, but the signal icon still flickers. Should we run a diagnostic scan?", c: [
+                    { text: "Yes! Hold the Option key and click the Wi-Fi icon in the top menu bar, then select 'Open Wireless Diagnostics' to run a built-in analysis.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Advanced L2 diagnostic shortcut knowledge!" },
+                    { text: "Mac doesn't have network diagnostics built in.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Incorrect technical information." },
+                    { text: "Search for network diagnostic apps online.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "worried", feedback: "Unsafe recommendation." }
+                ]},
+                s5: { q: "The diagnostic report recommended renewing the DHCP lease. How do I do that?", c: [
+                    { text: "Go to System Settings > Network > Wi-Fi > Details > TCP/IP, and click 'Renew DHCP Lease'.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Exact macOS navigation provided." },
+                    { text: "Open Terminal and delete system root files.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Dangerous command prompt suggestion!" },
+                    { text: "Look under advanced IP settings.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Imprecise path." }
+                ]},
+                s6: { q: "I clicked Renew DHCP Lease, and the connection stabilized immediately! All full bars now!", c: [
+                    { text: "Excellent! We successfully refreshed your Mac's IP configuration on the network. Your meetings should run smoothly now.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Validated fix and technical explanation." },
+                    { text: "Finally.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Unprofessional." },
+                    { text: "Great, it seems fixed.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Simple acknowledgment." }
+                ]},
+                s7: { q: "Muchas gracias, Carlos! You saved my work day!", c: [
+                    { text: "It was my absolute pleasure, Carlos! Thank you for calling Apple Support. Have a wonderful day in Madrid!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Warm and courteous closing." },
+                    { text: "Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Have a good one!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Casual closing." }
+                ]}
+            }),
+            build7StageScenario("Apple Watch Battery Drain", "Rome, Italy", "IT", {
+                s1: { q: "Ciao, my name is Matteo. My Apple Watch Series 9 battery is dying in just 4 hours after the latest update!", c: [
+                    { text: "Ciao Matteo! Thank you for calling Apple Support. I know how frustrating rapid battery drain is on a device you wear all day. Let's work together to isolate this.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Empathetic and structured." },
+                    { text: "Apple Watches always have bad battery life.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Negative branding statement." },
+                    { text: "Hi Matteo, let's look at your Watch settings.", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Standard greeting." }
+                ]},
+                s2: { q: "Did the software update break my Watch's battery hardware?", c: [
+                    { text: "Following an update, background indexing can temporarily increase battery usage, or background app settings may have reset. Let's check Battery Health first.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Educated customer on post-update indexing." },
+                    { text: "Yes, updates ruin hardware.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "False technical statement." },
+                    { text: "Maybe, let's check settings.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Vague answer." }
+                ]},
+                s3: { q: "Battery Health under Settings > Battery shows 98% Maximum Capacity.", c: [
+                    { text: "98% capacity confirms your battery hardware is healthy! This indicates software or background activity is causing the battery drain.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Isolated hardware vs software cause accurately." },
+                    { text: "98% is terrible, you need a new watch.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Inaccurate hardware assessment." },
+                    { text: "Hardware is okay then.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Brief confirmation." }
+                ]},
+                s4: { q: "What background settings should we adjust to stop the fast draining?", c: [
+                    { text: "On your iPhone Watch app, let's manage Background App Refresh and turn off unnecessary Always-On display features for non-essential apps.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Actionable software battery optimization steps." },
+                    { text: "Turn off the watch and don't use it for 3 days.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Unhelpful advice." },
+                    { text: "Dim your screen brightness all the way down.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Partial solution." }
+                ]},
+                s5: { q: "Should we also restart both the Apple Watch and paired iPhone?", c: [
+                    { text: "Yes, restarting both devices clears temporary system cache and completes post-update background background tasks.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Best practice pairing troubleshooting." },
+                    { text: "No, restarting makes battery drain worse.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Incorrect statement." },
+                    { text: "Sure, give it a try.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Lacks conviction." }
+                ]},
+                s6: { q: "I restarted both and turned off background refresh for third-party apps. It's holding charge much better now!", c: [
+                    { text: "That is fantastic news! Monitor it over the next 24 hours as post-update indexing finishes completely.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Provided realistic follow-up expectation." },
+                    { text: "Great, bye.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Good to hear it's better.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Standard response." }
+                ]},
+                s7: { q: "Grazie, Matteo! Excellent support!", c: [
+                    { text: "You're very welcome, Matteo! Thank you for choosing Apple Support. Have a wonderful day in Rome!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Polite regional closing." },
+                    { text: "Arrivederci.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Too brief." },
+                    { text: "Bye!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Casual closing." }
+                ]}
+            }),
+            build7StageScenario("iCloud Photo Sync Stuck", "Amsterdam, Netherlands", "NL", {
+                s1: { q: "Hoi, my name is Jan. Photos taken on my iPhone aren't appearing on my Mac anymore.", c: [
+                    { text: "Hoi Jan! Thank you for reaching out to Apple Support. I'd be glad to help get your iCloud Photos syncing seamlessly between your iPhone and Mac again.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Warm greeting and problem statement alignment." },
+                    { text: "iCloud sync breaks all the time.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "impatient", feedback: "Negative attitude." },
+                    { text: "Hi Jan, let's check your photo settings.", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Standard opening." }
+                ]},
+                s2: { q: "Is it because my devices are on different Apple Accounts?", c: [
+                    { text: "That could very well be! iCloud sync requires both devices to be signed into the exact same Apple Account. Let's verify the email on both.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Identified potential configuration mismatch." },
+                    { text: "Apple Accounts don't matter for sync.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "False technical statement." },
+                    { text: "Maybe, check your settings.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Vague feedback." }
+                ]},
+                s3: { q: "Both devices are signed into jan.v@example.nl. What else could pause photo syncing?", c: [
+                    { text: "Check if Low Power Mode is enabled on your iPhone, or if iCloud Photos status in the Photos App says 'Syncing Paused'.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Accurate L1 sync pause causes identified." },
+                    { text: "You need to buy a new iPhone.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Unnecessary hardware upsell." },
+                    { text: "Restart your Wi-Fi router.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Generic troubleshooting step." }
+                ]},
+                s4: { q: "Ah! Low Power Mode was turned on, and it says 'Sync Paused to Save Battery' at the bottom of Photos!", c: [
+                    { text: "That explains it! Turning off Low Power Mode or tapping 'Resume Sync' will immediately start transferring your photos.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Resolved root cause accurately." },
+                    { text: "Never use Low Power Mode ever again.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Bad advice regarding built-in iOS features." },
+                    { text: "Turn off Low Power Mode in battery settings.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Direct instruction." }
+                ]},
+                s5: { q: "I tapped Resume Sync. How can I confirm the Mac is receiving them?", c: [
+                    { text: "Open the Photos app on your Mac and look at the bottom of the 'Library' tab. You will see a progress bar indicating incoming items.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Clear macOS Photos navigation provided." },
+                    { text: "You can't check status on Mac.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "False statement." },
+                    { text: "Just wait an hour.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Lacks verification step." }
+                ]},
+                s6: { q: "I see 'Updating just now' on my Mac and my latest photos appeared! Everything is synced!", c: [
+                    { text: "Perfect! Your iCloud Photo Library is operating normally again across your Apple ecosystem.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Validated resolution." },
+                    { text: "Great.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Glad it's working.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Basic acknowledgment." }
+                ]},
+                s7: { q: "Thank you for finding the issue so fast, Jan!", c: [
+                    { text: "You're very welcome, Jan! Thank you for choosing Apple Support. Enjoy the rest of your day in Amsterdam!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Warm and courteous closure." },
+                    { text: "Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Have a nice day!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing." }
+                ]}
+            })
+        ],
+        hard: [
+            build7StageScenario("Compromised Apple Account & Escalation", "Lagos, Nigeria", "NG", {
+                s1: { q: "I've been transferred three times! Someone in another country logged into my Apple Account and changed my password! Get me a supervisor NOW!", c: [
+                    { text: "I completely understand your frustration regarding the transfers and the urgency of securing your account. I am taking full ownership of your case right now, and we will handle this together.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Flawless de-escalation! Took immediate ownership." },
+                    { text: "Supervisors don't take calls. Calm down or I will disconnect.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Hostile response violating customer care guidelines." },
+                    { text: "I'm sorry for transfers. Let me see if a supervisor is free.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "impatient", feedback: "Blind transfer attempt without initial triage." }
+                ]},
+                s2: { q: "Fine! But if my personal data is compromised, Apple is responsible. What is our first security step?", c: [
+                    { text: "Let's immediately start account recovery and password reset through iforgot.apple.com to revoke any unauthorized active sessions.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Actionable L2 security protocol initiated." },
+                    { text: "Just wait 24 hours to see if they log out.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Passive response to an active security breach!" },
+                    { text: "Try logging in again on your phone.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Basic step, lacks formal security protocol." }
+                ]},
+                s3: { q: "I got a text with a 6-digit verification code. Read it off to you so you can fix it?", c: [
+                    { text: "For your protection, never share verification codes over the phone. Please enter that code directly on the secure screen on your device.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Strict adherence to Apple Security Compliance!" },
+                    { text: "Yes, tell me the code right now.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Major security policy breach!" },
+                    { text: "Enter it on your phone screen only.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Correct direction, but missed policy explanation." }
+                ]},
+                s4: { q: "Okay, I changed the password! How do I remove the hacker's unauthorized devices from my account?", c: [
+                    { text: "Under Settings > [Your Name], scroll down to the device list. Tap any unrecognized device and select 'Remove from Account'.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Clear security remediation instruction." },
+                    { text: "You can't remove devices once added.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "False technical information." },
+                    { text: "Delete your Apple Account entirely.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "worried", feedback: "Overly destructive suggestion." }
+                ]},
+                s5: { q: "I removed an unknown Windows PC from my device list! Should I also turn on 2-Factor Authentication key features?", c: [
+                    { text: "Absolutely. Turning on 2FA and checking your trusted phone numbers ensures only you can authorize future sign-ins.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Proactive security hardening guidance." },
+                    { text: "No, 2FA makes signing in annoying.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Discouraged security features." },
+                    { text: "Yes, 2FA is good.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Brief confirmation." }
+                ]},
+                s6: { q: "My account is fully secured, unauthorized devices are removed, and my password is updated! Do I still need a supervisor?", c: [
+                    { text: "I am happy to connect you to a supervisor if you still wish to provide feedback, but I'm glad we fully secured your account together!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Respectful boundary setting and successful resolution." },
+                    { text: "See? You didn't need a supervisor after all.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Arrogant closing tone." },
+                    { text: "No, everything is fixed now.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Dismissive of original supervisor request." }
+                ]},
+                s7: { q: "No, you handled this brilliantly on your own. Thank you for taking charge!", c: [
+                    { text: "It was my duty and pleasure to assist you. Thank you for choosing Apple Support, and have a safe day in Lagos!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Exceptional professional de-escalation closure!" },
+                    { text: "Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Glad I could help. Goodbye!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing." }
+                ]}
+            }),
+            build7StageScenario("Stolen iPhone & Loss Prevention", "Johannesburg, South Africa", "ZA", {
+                s1: { q: "My iPhone 15 Pro was just stolen out of my bag! I am terrified they will access my banking apps!", c: [
+                    { text: "I am so sorry to hear that happened. I understand how terrifying that is, but I will help you mark it as lost right now. May I verify your Apple Account email?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Immediate empathy and crisis intervention." },
+                    { text: "File a police report, we can't do anything.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Refused L1 emergency security assistance." },
+                    { text: "Calm down. What is your account email?", type: "soso", scores: {emp:1, own:2, tec:3, com:2}, mood: "impatient", feedback: "Dismissive of fear." }
+                ]},
+                s2: { q: "My email is sipho.m@example.co.za. How do we stop them from opening my phone and apps?", c: [
+                    { text: "We will log into icloud.com/find right now to enable 'Lost Mode'. This locks your device with your passcode and suspends Apple Pay instantly.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Precise emergency security explanation." },
+                    { text: "Change your bank account numbers first.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Outside Apple Support scope." },
+                    { text: "Use Find My app on another device.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Partial instruction." }
+                ]},
+                s3: { q: "I am on icloud.com/find on my laptop. Should I click 'Erase iPhone' or 'Lost Mode'?", c: [
+                    { text: "Select 'Lost Mode' first so it displays a contact number on screen while keeping location tracking active. Only use Erase if you give up on recovery.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Crucial operational distinction between Lost Mode and Erase." },
+                    { text: "Click Erase iPhone right now.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Erasing stops real-time tracking prematurely." },
+                    { text: "Either option works fine.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "worried", feedback: "Inaccurate distinction." }
+                ]},
+                s4: { q: "Lost Mode is active! I received a suspicious SMS saying 'Apple Find My: iPhone found, click link to view location'. Is this real?", c: [
+                    { text: "That is a phishing scam! Thieves send fake SMS links to steal your credentials and remove Activation Lock. Do NOT click it.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Prevented stolen device Activation Lock phishing trap!" },
+                    { text: "Yes, click the link to see where your phone is.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Fell into phishing trap, destroying customer device protection!" },
+                    { text: "Probably real, check the URL.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "worried", feedback: "Dangerous guidance." }
+                ]},
+                s5: { q: "Thank goodness I asked you! Should I remove the stolen iPhone from my Apple Account device list?", c: [
+                    { text: "NO! Never remove a stolen device from your account list. Removing it turns off Activation Lock, allowing the thief to erase and reuse your phone.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Critical compliance security warning!" },
+                    { text: "Yes, remove it so they don't see your name.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Catastrophic policy error! Disables Activation Lock." },
+                    { text: "You can remove it later.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "neutral", feedback: "Vague risk warning." }
+                ]},
+                s6: { q: "The phone is locked, Apple Pay is suspended, Activation Lock is active, and I ignored the phishing text. Am I fully protected?", c: [
+                    { text: "Yes! Your personal data and financial accounts remain completely secure behind your passcode and Activation Lock.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Complete security reassurance." },
+                    { text: "Maybe, hope for the best.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "worried", feedback: "Unsettling closure tone." },
+                    { text: "You should be secure now.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Basic confirmation." }
+                ]},
+                s7: { q: "You saved me from making huge mistakes today! Thank you so much!", c: [
+                    { text: "It was my absolute duty to protect your security today. Thank you for contacting Apple Support, and stay safe in Johannesburg!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Empathetic crisis response closure!" },
+                    { text: "Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Glad I could help!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing." }
+                ]}
+            }),
+            build7StageScenario("Hostile Escalation & Hardware Damage", "Dubai, UAE", "AE", {
+                s1: { q: "My iPad screen cracked on its own! I paid $1000 for this piece of junk! I demand a free replacement right now or I'm suing Apple!", c: [
+                    { text: "I hear your frustration regarding the screen damage on your iPad. While physical damage isn't covered under standard warranty, I will examine all coverage options with you. May I verify your serial number?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Calm, professional boundary setting combined with clear policy." },
+                    { text: "You dropped it. Stop lying and pay for repair.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Accusatory and hostile response!" },
+                    { text: "Glass doesn't crack on its own. What is your serial number?", type: "soso", scores: {emp:1, own:2, tec:2, com:2}, mood: "impatient", feedback: "Argumentative tone." }
+                ]},
+                s2: { q: "I have AppleCare+! Doesn't that cover complete free replacement for broken screens?", c: [
+                    { text: "Having AppleCare+ is great news! It covers accidental screen damage for a low service fee of AED 99 rather than full out-of-warranty cost.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Accurate AppleCare+ excess fee clarification." },
+                    { text: "Yes, AppleCare+ replaces everything 100% free with no fees.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Misrepresented deductible costs." },
+                    { text: "AppleCare+ helps, but you still pay a fee.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Missing specific local service fee details." }
+                ]},
+                s3: { q: "Why should I pay ANY fee when I already bought AppleCare+?! This is ridiculous!", c: [
+                    { text: "I understand paying an additional fee is frustrating. The incident fee allows us to provide genuine Apple original screen replacements or full unit swaps.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "De-escalated financial pushback with value justification." },
+                    { text: "Because that's the rule. Pay it or don't get service.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Blunt and unhelpful policy delivery." },
+                    { text: "That's just Apple policy.", type: "soso", scores: {emp:1, own:1, tec:2, com:1}, mood: "impatient", feedback: "Hiding behind policy without explanation." }
+                ]},
+                s4: { q: "Fine! Where do I take the iPad in Dubai to get the screen replaced under AppleCare+?", c: [
+                    { text: "We can book an appointment for you at Apple Dubai Mall or Apple Mall of the Emirates, where certified technicians will service it.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Precise local EMEIA service location booking provided." },
+                    { text: "Take it to any random repair shop in the street market.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Voids AppleCare+ by directing to unauthorized service providers." },
+                    { text: "Find an Apple Store online.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Lacks direct scheduling booking." }
+                ]},
+                s5: { q: "Before I go, do I need to prepare my iPad before handing it to the technicians?", c: [
+                    { text: "Yes, please back up your data to iCloud, turn off 'Find My' to remove Activation Lock, and bring a valid photo ID.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Essential service readiness requirements." },
+                    { text: "Just hand them the broken iPad as it is.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Repair will be rejected if Find My is enabled!" },
+                    { text: "Backup your photos.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Missed Find My turning off requirement." }
+                ]},
+                s6: { q: "I backed it up and turned off Find My. Appointment is set for Dubai Mall at 4 PM. Am I ready?", c: [
+                    { text: "You are 100% prepared! The store team will have your repair assessment ready upon arrival.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Validated resolution and readiness." },
+                    { text: "Sure.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Lacks engagement." },
+                    { text: "You are ready to go.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Basic confirmation." }
+                ]},
+                s7: { q: "Sorry for yelling earlier. Thank you for keeping your cool and helping me out.", c: [
+                    { text: "Apology accepted! I completely understand emotions run high when devices break. Thank you for choosing Apple Support, and have a great evening in Dubai!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Masterful emotional de-escalation closure!" },
+                    { text: "Yeah whatever. Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Unprofessional." },
+                    { text: "You're welcome. Goodbye!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing." }
+                ]}
+            }),
+            build7StageScenario("Family Sharing Data Privacy Incident", "Stockholm, Sweden", "SE", {
+                s1: { q: "Hej, my name is Astrid. I accidentally synced my personal Safari browsing history and private photos to my daughter's iPad!", c: [
+                    { text: "Hej Astrid! Thank you for calling Apple Support. I can understand how stressful a privacy mix-up like that feels. I'll help you untangle your devices right away. May I verify your account email?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Warm, empathetic greeting addressing privacy concern." },
+                    { text: "That's embarrassing! Why did you do that?", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Shamed the customer!" },
+                    { text: "Hi Astrid, let's fix your family sync settings.", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Standard opening." }
+                ]},
+                s2: { q: "My daughter's iPad is signed into my Apple Account email! Is that why our data merged?", c: [
+                    { text: "Yes, exactly. Apple Accounts are designed for individual personal use. Sharing an account across people merges photos, bookmarks, and messages.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Core technical cause explained clearly." },
+                    { text: "No, Family Sharing forces everyone to share browsing history.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Misunderstood Family Sharing architecture." },
+                    { text: "Yes, don't share emails.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Too brief." }
+                ]},
+                s3: { q: "How do I fix this so she has her own separate iPad setup without my private data?", c: [
+                    { text: "We will create a Child Apple Account for her under Family Sharing, sign your account off her iPad, and sign in her new child account.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Proper Apple account structure recommendation." },
+                    { text: "Throw away her iPad.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Absurd suggestion." },
+                    { text: "Delete all photos on her iPad while logged into your account.", type: "soso", scores: {emp:0, own:1, tec:0, com:1}, mood: "worried", feedback: "Dangerous! Will delete photos off iCloud for both devices!" }
+                ]},
+                s4: { q: "Wait, if I tap 'Sign Out' on her iPad, will it delete my photos from my own iPhone?", c: [
+                    { text: "When signing out on her iPad, select 'Keep a copy of data on this iPad' = OFF, and your photos will remain safely untouched in your iCloud and iPhone.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Crucial data loss prevention guidance!" },
+                    { text: "Yes, signing out erases everything on all your devices.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "False statement causing severe panic!" },
+                    { text: "Photos might get deleted, be careful.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "worried", feedback: "Vague and alarming advice." }
+                ]},
+                s5: { q: "I created her Child Account and signed her iPad into it! How do I clean off the leftover synced Safari history on her device?", c: [
+                    { text: "On her iPad, go to Settings > Safari > Clear History and Website Data.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Direct resolution navigation." },
+                    { text: "You have to restore her iPad to factory settings 5 times.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Nonsensical instruction." },
+                    { text: "Delete Safari app.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "confused", feedback: "Built-in browser cannot be deleted." }
+                ]},
+                s6: { q: "History cleared! Both devices are completely separate now and my privacy is restored. Is Family Sharing configured right?", c: [
+                    { text: "Yes! You now have full parental control oversight through Family Sharing while keeping your personal data 100% private.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Validated resolution and benefits." },
+                    { text: "Looks fine.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Lacks engagement." },
+                    { text: "You are all set.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Basic confirmation." }
+                ]},
+                s7: { q: "Tack så mycket, Astrid! Fantastic guidance!", c: [
+                    { text: "Tack! It was my pleasure, Astrid. Thank you for choosing Apple Support. Have a wonderful day in Stockholm!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Polite regional closure." },
+                    { text: "Bye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt." },
+                    { text: "Goodbye!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing." }
+                ]}
+            })
+        ]
+    };
+
+    let selectedDiff = 'easy';
+    let currentScenarioIdx = 0;
+    let currentStage = 0;
+    let totalScores = { emp: 0, own: 0, tec: 0, com: 0 };
+
+    function selectDifficulty(diff, el) {
+        selectedDiff = diff;
+        document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        renderScenarios();
+    }
+
+    function renderScenarios() {
+        const listContainer = document.getElementById('scenario-list');
+        listContainer.innerHTML = '';
+        const list = scenarios[selectedDiff] || [];
+        list.forEach((sc, idx) => {
+            const item = document.createElement('div');
+            item.className = `scenario-item ${idx === 0 ? 'selected' : ''}`;
+            item.onclick = () => {
+                document.querySelectorAll('.scenario-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                currentScenarioIdx = idx;
+            };
+            item.innerHTML = `<strong>${sc.title}</strong><br><small style="color:var(--text-secondary);">${sc.region}</small>`;
+            listContainer.appendChild(item);
+        });
+    }
+
+    function startSimulation() {
+        document.getElementById('screen-menu').classList.remove('active');
+        document.getElementById('screen-game').classList.add('active');
+        currentStage = 0;
+        totalScores = { emp: 0, own: 0, tec: 0, com: 0 };
+        loadStage();
+    }
+
+    function loadStage() {
+        const sc = scenarios[selectedDiff][currentScenarioIdx];
+        const stage = sc.stages[currentStage];
+
+        document.getElementById('cust-avatar').innerText = sc.initials;
+        document.getElementById('cust-name').innerText = "Customer (" + sc.initials + ")";
+        document.getElementById('cust-region').innerText = sc.region;
+        document.getElementById('stage-indicator').innerText = `${stage.stageTitle} (Stage ${currentStage + 1} of 7)`;
+        document.getElementById('customer-statement').innerText = `"${stage.statement}"`;
+
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+        document.getElementById('coaching-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+
+        // Fully randomize choice positions and remove A/B/C letter bias
+        let choices = [...stage.choices].sort(() => Math.random() - 0.5);
+
+        choices.forEach(ch => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = `• ${ch.text}`;
+            btn.onclick = () => selectOption(ch, btn);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function selectOption(choice, btnEl) {
+        document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+        
+        if (choice.type === 'perfect') btnEl.classList.add('selected-perfect');
+        else if (choice.type === 'soso') btnEl.classList.add('selected-soso');
+        else btnEl.classList.add('selected-wrong');
+
+        totalScores.emp += choice.scores.emp;
+        totalScores.own += choice.scores.own;
+        totalScores.tec += choice.scores.tec;
+        totalScores.com += choice.scores.com;
+
+        document.getElementById('tick-emp').innerText = totalScores.emp;
+        document.getElementById('tick-own').innerText = totalScores.own;
+        document.getElementById('tick-tec').innerText = totalScores.tec;
+        document.getElementById('tick-com').innerText = totalScores.com;
+
+        const moodTag = document.getElementById('cust-mood');
+        moodTag.className = `mood-tag mood-${choice.mood}`;
+        moodTag.innerText = choice.mood;
+
+        const coachBox = document.getElementById('coaching-box');
+        document.getElementById('coaching-text').innerText = choice.feedback;
+        coachBox.style.display = 'block';
+
+        const sc = scenarios[selectedDiff][currentScenarioIdx];
+        const nextBtn = document.getElementById('next-btn');
+        if (currentStage >= sc.stages.length - 1) {
+            nextBtn.innerText = "View Final 7-Stage Call Report";
+        } else {
+            nextBtn.innerText = `Advance to Stage ${currentStage + 2}`;
+        }
+        nextBtn.style.display = 'block';
+    }
+
+    function nextStage() {
+        currentStage++;
+        const sc = scenarios[selectedDiff][currentScenarioIdx];
+        if (currentStage >= sc.stages.length) {
+            showReport();
+        } else {
+            loadStage();
+        }
+    }
+
+    function showReport() {
+        document.getElementById('screen-game').classList.remove('active');
+        document.getElementById('screen-report').classList.add('active');
+
+        const total = totalScores.emp + totalScores.own + totalScores.tec + totalScores.com;
+        const maxScore = 140; // 7 stages * 4 categories * 5 max points
+        const pct = Math.min(100, Math.round((total / maxScore) * 100));
+
+        document.getElementById('final-grade').innerText = `${pct}%`;
+        document.getElementById('rep-emp').innerText = totalScores.emp;
+        document.getElementById('rep-own').innerText = totalScores.own;
+        document.getElementById('rep-tec').innerText = totalScores.tec;
+        document.getElementById('rep-com').innerText = totalScores.com;
+
+        let rating = "Needs Retraining";
+        if (pct >= 90) rating = "Senior Apple Advisor";
+        else if (pct >= 75) rating = "Proficient Technical Advisor";
+        else if (pct >= 60) rating = "Developing Advisor";
+
+        document.getElementById('final-rating').innerText = rating;
+        
+        let feedbackText = "Solid attempt throughout the 7-stage call flow. Work on maintaining strong empathy and clear verification habits at every step.";
+        if (pct >= 90) {
+            feedbackText = "Flawless call execution! You mastered all 7 stages from identity verification and probing to policy compliance, step-by-step resolution, and warm regional closure.";
+        } else if (pct < 65) {
+            feedbackText = "Compliance & Soft Skills Review Needed: Ensure you never ask for 2FA/passwords directly, maintain de-escalation ownership during customer frustration, and follow all 7 stages of the call flow.";
+        }
+        document.getElementById('personalized-coaching').innerText = feedbackText;
+    }
+
+    function restartLab() {
+        document.getElementById('screen-report').classList.remove('active');
+        document.getElementById('screen-menu').classList.add('active');
+    }
+
+    renderScenarios();
+</script>
+</body>
+</html>
