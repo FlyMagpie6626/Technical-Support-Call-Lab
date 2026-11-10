@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Stage 2.0.4: Final Isolation Verification)
+   TSCL 2.2 CORE APPLICATION ENGINE (Stage 2.0.4 Final QA Assertion Cleanup)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -1953,7 +1953,7 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 }
 
 /* ==========================================================================
-   AUTOMATED DEFECT-INJECTION & CHOICE INTEGRITY TEST RUNNER (STAGE 2.0.4)
+   AUTOMATED DEFECT-INJECTION & CHOICE INTEGRITY TEST RUNNER (Stage 2.0.4 Cleaned)
    ========================================================================== */
 function runQADefectInjectionTests() {
     const results = [];
@@ -2164,7 +2164,7 @@ function runQADefectInjectionTests() {
         results.push({ test: 'Hardening Tests Suite (1-5)', passed: false, error: e.message });
     }
 
-    // --- STAGE 2.0.4 ISOLATED HARDENING, COMPREHENSIVE STORAGE INTERCEPTION & TEST SUITE (Tests 6-9 & Final Verification) ---
+    // --- STAGE 2.0.4 ISOLATED HARDENING, COMPREHENSIVE STORAGE INTERCEPTION & FINAL ASSERTION CLEANUP ---
     const origCurrentSession = currentSession;
     const origRenderSimulatorUI = app.renderSimulatorUI;
     const origFinishCall = app.finishCall;
@@ -2185,8 +2185,9 @@ function runQADefectInjectionTests() {
     let clearAttemptCount = 0;
     let storageMutationAttemptCount = 0;
     let interceptorsInstalledBeforeTests = false;
+    let stubInstalledBeforeTerminal = false;
 
-    // Named finishCallStub function requirement (Stage 2.0.4 Issue 1)
+    // Named finishCallStub function requirement (Stage 2.0.4)
     function finishCallStub() {
         stubFinishCallInvokedCount++;
         if (currentSession) {
@@ -2195,7 +2196,7 @@ function runQADefectInjectionTests() {
     }
 
     try {
-        // Intercept all LocalStorage mutation methods (setItem, removeItem, clear) to count and prevent changes (Stage 2.0.4 Issue 2)
+        // Intercept all LocalStorage mutation methods (setItem, removeItem, clear) to count and prevent changes
         Storage.prototype.setItem = function(key, value) {
             setItemAttemptCount++;
             storageMutationAttemptCount++;
@@ -2279,7 +2280,7 @@ function runQADefectInjectionTests() {
         const repeatedRejected = currentSession.currentStepIndex === stepIdxAfterFirst;
         results.push({ test: 'Hardening 8: Repeated continuation rejected', passed: repeatedRejected });
 
-        // Hardening 9 (Stage 2.0.4 Verified): Stub Identity, Invocation Count & Production Path Trigger
+        // Hardening 9 (Stage 2.0.4 Cleaned & Recorded): Stub Identity, Invocation Count & Production Path Trigger
         const sT9 = helperTestSession();
         currentSession = sT9;
         stubFinishCallInvokedCount = 0;
@@ -2296,8 +2297,9 @@ function runQADefectInjectionTests() {
         currentSession.pendingContinuationDestination = 'end-success';
         currentSession.continuationProcessed = false;
 
-        // Stage 2.0.4 Issue 1 Verifications:
-        const stubInstalledCorrectly = (app.finishCall === finishCallStub);
+        // Stage 2.0.4 Cleanup Issue 1: Store the result of identity check immediately before terminal continuation
+        stubInstalledBeforeTerminal = (app.finishCall === finishCallStub);
+
         const stubIsDistinct = (finishCallStub !== origFinishCall);
 
         // Trigger the actual production app.advanceStep('end-success') path which invokes finishCall via stub
@@ -2313,13 +2315,13 @@ function runQADefectInjectionTests() {
 
         results.push({
             test: 'Hardening 9: Stub identity, distinctness from origFinishCall, single stub invocation via production advanceStep path',
-            passed: stepBReached && stubInstalledCorrectly && stubIsDistinct && terminalCompleted && stubCalledOnce && continuationConsumed && repeatTerminalRejected
+            passed: stepBReached && stubInstalledBeforeTerminal && stubIsDistinct && terminalCompleted && stubCalledOnce && continuationConsumed && repeatTerminalRejected
         });
 
     } catch (e) {
         results.push({ test: 'Hardening Tests Suite (6-9)', passed: false, error: e.message });
     } finally {
-        // Guaranteed restoration block (Stage 2.0.4 requirements)
+        // Guaranteed restoration block
         currentSession = origCurrentSession;
         app.renderSimulatorUI = origRenderSimulatorUI;
         app.finishCall = origFinishCall;
@@ -2328,7 +2330,7 @@ function runQADefectInjectionTests() {
         Storage.prototype.clear = origClear;
     }
 
-    // Explicit Isolation & Storage Write Checks (Stage 2.0.4 requirements)
+    // Explicit Isolation & Storage Write Checks (Stage 2.0.4 Cleaned Issues 1 & 2)
     try {
         const gameStateSnapshotAfter = JSON.parse(JSON.stringify(gameState));
         const gameStateUnchanged = (JSON.stringify(gameStateSnapshotBefore) === JSON.stringify(gameStateSnapshotAfter));
@@ -2340,12 +2342,18 @@ function runQADefectInjectionTests() {
             }
         });
 
-        results.push({ test: 'Isolation Check 1: Named stub installed during terminal continuation', passed: true });
+        results.push({ test: 'Isolation Check 1: Named stub installed during terminal continuation', passed: stubInstalledBeforeTerminal });
         results.push({ test: 'Isolation Check 2: Named stub distinct from original production function', passed: finishCallStub !== origFinishCall });
         results.push({ test: 'Isolation Check 3: Stub invoked exactly once during terminal completion', passed: stubFinishCallInvokedCount === 1 });
         results.push({ test: 'Isolation Check 4: Original production finishCall restored afterward', passed: app.finishCall === origFinishCall });
         results.push({ test: 'Isolation Check 5: Interceptors verified installed before isolated tests', passed: interceptorsInstalledBeforeTests });
-        results.push({ test: 'Isolation Check 6: All attempted setItem, removeItem, and clear operations counted', passed: typeof storageMutationAttemptCount === 'number' });
+        results.push({ 
+            test: 'Isolation Check 6: All attempted setItem, removeItem, and clear operations counted', 
+            passed: (typeof setItemAttemptCount === 'number' && setItemAttemptCount >= 0 &&
+                     typeof removeItemAttemptCount === 'number' && removeItemAttemptCount >= 0 &&
+                     typeof clearAttemptCount === 'number' && clearAttemptCount >= 0 &&
+                     storageMutationAttemptCount === setItemAttemptCount + removeItemAttemptCount + clearAttemptCount) 
+        });
         results.push({ test: 'Isolation Check 7: Zero LocalStorage mutation attempts during isolated tests', passed: storageMutationAttemptCount === 0 });
         results.push({ test: 'Isolation Check 8: All five TSCL LocalStorage values remain unchanged', passed: storageValuesUnchanged });
         results.push({ test: 'Isolation Check 9: All three original Storage methods restored', passed: Storage.prototype.setItem === origSetItem && Storage.prototype.removeItem === origRemoveItem && Storage.prototype.clear === origClear });
@@ -2590,7 +2598,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Stage 2.0.4: Final Isolation Verified) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Stage 2.0.4 Cleaned) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2613,7 +2621,7 @@ const app = {
                         ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">4. Defect-Injection & Isolated Hardening Suite (Stage 2.0.4)</div>
+                    <div class="qa-section-title">4. Defect-Injection & Isolated Hardening Suite (Stage 2.0.4 Cleaned)</div>
                     <div class="qa-list">
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Test Suite</button>
                         ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'PASSED' : 'FAILED'}</strong> ${t.error ? `(${t.error})` : ''}</div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
@@ -2701,7 +2709,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE (STAGE 2.0.4)
+       CALL SIMULATOR ENGINE (Stage 2.0.4 Cleaned)
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
