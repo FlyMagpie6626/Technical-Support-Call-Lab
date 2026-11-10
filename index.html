@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Support Call Lab</title>
+    <style>
+        :root {
+            --bg-primary: #f5f5f7;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent: #0071e3;
+            --accent-hover: #0077ed;
+            --border: rgba(0, 0, 0, 0.1);
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --success: #34c759;
+            --warning: #ff9500;
+            --danger: #ff3b30;
+            --card-radius: 18px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #000000;
+                --bg-card: rgba(28, 28, 30, 0.9);
+                --text-primary: #f5f5f7;
+                --text-secondary: #86868b;
+                --accent: #2997ff;
+                --accent-hover: #0077ed;
+                --border: rgba(255, 255, 255, 0.15);
+                --shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 840px;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow);
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header .subtitle {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .region-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: rgba(0, 113, 227, 0.1);
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* Screens */
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* Menu */
+        .difficulty-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 24px 0;
+        }
+
+        .diff-card {
+            background: rgba(125, 125, 125, 0.05);
+            border: 2px solid transparent;
+            border-radius: 14px;
+            padding: 20px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .diff-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .diff-card.selected {
+            border-color: var(--accent);
+            background: rgba(0, 113, 227, 0.08);
+        }
+
+        .diff-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 6px;
+        }
+
+        .diff-card p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn:hover { background: var(--accent-hover); transform: scale(1.01); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Gameplay Call Dashboard */
+        .call-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(125, 125, 125, 0.08);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .customer-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .mood-tag {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .mood-cooperative, .mood-delighted, .mood-relieved { background: rgba(52, 199, 89, 0.2); color: var(--success); }
+        .mood-confused, .mood-worried, .mood-skeptical, .mood-neutral { background: rgba(255, 149, 0, 0.2); color: var(--warning); }
+        .mood-impatient, .mood-angry, .mood-frustrated { background: rgba(255, 59, 48, 0.2); color: var(--danger); }
+
+        .scores-ticker {
+            display: flex;
+            gap: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .chat-box {
+            background: rgba(125, 125, 125, 0.05);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .dialogue {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 6px;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: left;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            line-height: 1.4;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--accent);
+            background: rgba(0, 113, 227, 0.05);
+        }
+
+        .option-btn.selected-perfect { border-color: var(--success) !important; background: rgba(52, 199, 89, 0.12) !important; }
+        .option-btn.selected-soso { border-color: var(--warning) !important; background: rgba(255, 149, 0, 0.12) !important; }
+        .option-btn.selected-wrong { border-color: var(--danger) !important; background: rgba(255, 59, 48, 0.12) !important; }
+
+        .coaching-card {
+            background: rgba(125, 125, 125, 0.08);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--accent);
+            display: none;
+        }
+
+        .coaching-card h4 {
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .coaching-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Report Screen */
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            font-size: 2.3rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin: 8px 0;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .skill-stat {
+            background: rgba(125, 125, 125, 0.05);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .skill-stat span {
+            display: block;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-top: 2px;
+        }
+
+        .coaching-plan {
+            background: rgba(125, 125, 125, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .coaching-plan h4 {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .category-coach-box {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .category-coach-box strong {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="subtitle">Support Operations · Technical Advisor Training</div>
+        <h1>Technical Support Call Lab</h1>
+        <p>“Accurate troubleshooting. Exceptional guidance.”</p>
+        <div class="region-badge">Global Support Operations</div>
+    </div>
+
+    <!-- Main Menu Screen -->
+    <div id="screen-menu" class="screen active">
+        <p style="text-align: center; margin-bottom: 10px; font-weight: 600; color: var(--text-secondary); font-size: 0.9rem;">Select Difficulty Level to Start Training:</p>
+        <div class="difficulty-selector">
+            <div class="diff-card selected" onclick="selectDifficulty('easy', this)">
+                <h3>Easy</h3>
+                <p>Includes Branching Apple Account sign-in simulation, password recovery, basic sync & billing (7/Branching Stages).</p>
+            </div>
+            <div class="diff-card" onclick="selectDifficulty('medium', this)">
+                <h3>Medium</h3>
+                <p>Multi-device sync issues, storage plan upgrades, & hardware diagnostics (7 Stages).</p>
+            </div>
+            <div class="diff-card" onclick="selectDifficulty('hard', this)">
+                <h3>Hard</h3>
+                <p>Security breaches, phishing scams, hostile escalations & strict compliance (7 Stages).</p>
+            </div>
+        </div>
+
+        <button class="btn" onclick="startSimulation()">Start Randomized Call Simulation</button>
+    </div>
+
+    <!-- Gameplay Screen -->
+    <div id="screen-game" class="screen">
+        <div class="call-bar">
+            <div class="customer-info">
+                <div id="cust-avatar" class="avatar">UK</div>
+                <div>
+                    <div id="cust-name" style="font-weight: 600;">Customer</div>
+                    <div id="cust-region" style="font-size: 0.75rem; color: var(--text-secondary);">London, UK</div>
+                </div>
+                <span id="cust-mood" class="mood-tag mood-neutral">Neutral</span>
+            </div>
+            <div class="scores-ticker">
+                <div>EMP: <span id="tick-emp">0</span></div>
+                <div>OWN: <span id="tick-own">0</span></div>
+                <div>TEC: <span id="tick-tec">0</span></div>
+                <div>COM: <span id="tick-com">0</span></div>
+            </div>
+        </div>
+
+        <div class="chat-box">
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;" id="stage-indicator">Stage 1</div>
+            <div id="customer-statement" class="dialogue">"Customer statement loads here..."</div>
+        </div>
+
+        <div id="options-container" class="options-list"></div>
+
+        <div id="coaching-box" class="coaching-card">
+            <h4 id="coaching-title">Coaching Feedback</h4>
+            <p id="coaching-text"></p>
+        </div>
+
+        <button id="next-btn" class="btn" style="display: none;" onclick="nextStage()">Continue to Next Stage</button>
+    </div>
+
+    <!-- End-of-Call Report Screen -->
+    <div id="screen-report" class="screen">
+        <div class="report-header">
+            <h2>Call Performance Summary</h2>
+            <div id="final-grade" class="grade-badge">100%</div>
+            <p id="final-rating" style="font-weight: 600; font-size: 1.05rem; color: var(--text-primary);">Outstanding Advisor</p>
+            <div id="critical-failure-indicator" style="display: none; margin-top: 8px; font-size: 0.8rem; font-weight: 600; color: var(--danger);">Critical Compliance Issue Detected</div>
+        </div>
+
+        <div class="skills-grid">
+            <div class="skill-stat">Empathy <span><span id="rep-emp">0</span> / <span id="max-emp">35</span></span></div>
+            <div class="skill-stat">Ownership <span><span id="rep-own">0</span> / <span id="max-own">35</span></span></div>
+            <div class="skill-stat">Technical Knowledge <span><span id="rep-tec">0</span> / <span id="max-tec">35</span></span></div>
+            <div class="skill-stat">Communication <span><span id="rep-com">0</span> / <span id="max-com">35</span></span></div>
+        </div>
+
+        <div class="coaching-plan">
+            <h4 style="margin-bottom: 6px; font-weight: 600;">Adaptive Performance Coaching:</h4>
+            <div id="personalized-coaching">Evaluating performance metrics...</div>
+        </div>
+
+        <button class="btn" onclick="restartLab()">Return to Main Menu</button>
+    </div>
+</div>
+
+<script>
+    const build7StageScenario = (title, region, initials, flow) => ({
+        title, region, initials, isBranching: false,
+        stages: [
+            { stageTitle: "Stage 1: Greeting & Verification", statement: flow.s1.q, choices: flow.s1.c },
+            { stageTitle: "Stage 2: Issue Probing & Listening", statement: flow.s2.q, choices: flow.s2.c },
+            { stageTitle: "Stage 3: Technical Isolation", statement: flow.s3.q, choices: flow.s3.c },
+            { stageTitle: "Stage 4: Security & Compliance", statement: flow.s4.q, choices: flow.s4.c },
+            { stageTitle: "Stage 5: Step-by-Step Resolution", statement: flow.s5.q, choices: flow.s5.c },
+            { stageTitle: "Stage 6: Reassurance & Verification", statement: flow.s6.q, choices: flow.s6.c },
+            { stageTitle: "Stage 7: Professional Call Closure", statement: flow.s7.q, choices: flow.s7.c }
+        ]
+    });
+
+    // Approved Branching Pilot Scenario (Apple Account Sign-in)
+    const branchingAppleScenario = {
+        title: "Apple Account Sign-in & Authentication",
+        region: "Dublin, Ireland",
+        initials: "OM",
+        isBranching: true,
+        startStage: "s1_greeting",
+        maxScorePerCategory: 20, // 4 optimal stages * 5 points max
+        stages: {
+            "s1_greeting": {
+                stageTitle: "Stage 1: Greeting & Verification",
+                statement: "Hi, my name is Orla. I'm trying to sign into my Apple Account on a new device, but it keeps failing with an error code!",
+                choices: [
+                    { text: "Please tell me your current Apple Account password right now so I can check it.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Never ask for customer passwords! Major security violation.", tag: "sec_fail", critical: true, next: "s_crit_security_fail" },
+                    { text: "Hello Orla! Welcome to Apple Support. I'd be glad to help you get signed in securely. May I verify your account email address?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Perfect greeting! Warm, empathetic, and established verification.", tag: "emp_great", next: "s2_probing" },
+                    { text: "Hello. Sign-in errors happen. Let's check your verification settings. What is your email?", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Acceptable, but missing strong initial empathy.", tag: "emp_miss", next: "s2_probing" }
+                ]
+            },
+            "s_crit_security_fail": {
+                stageTitle: "Compliance Violation / Call Termination",
+                statement: "Wait, you want my password? That is a major security violation! I am reporting this and ending the call!",
+                isTerminal: true,
+                choices: []
+            },
+            "s2_probing": {
+                stageTitle: "Stage 2: Issue Probing & Device Assessment",
+                statement: "My email is orla.m@example.ie. It's asking for a verification code, but my trusted phone is currently dead in my bag!",
+                choices: [
+                    { text: "No problem, Orla. Since your trusted device is unavailable, we can use account recovery or send a code via SMS to a trusted number.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Excellent probing and alternative path identification.", tag: "tec_great", next: "s3a_2fa_verification" },
+                    { text: "Let's bypass the device prompt and start account recovery right away via iforgot.apple.com.", type: "perfect", scores: {emp:4, own:4, tec:4, com:4}, mood: "cooperative", feedback: "Good alternative web recovery path.", tag: "tec_great", next: "s3b_iforgot_recovery" },
+                    { text: "Since your phone is dead, you'll have to buy a new device before you can sign in.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Unhelpful and incorrect hardware requirement.", tag: "tec_fail", next: "end_unresolved" }
+                ]
+            },
+            "end_unresolved": {
+                stageTitle: "Call Concluded - Unresolved",
+                statement: "Customer disconnected unsatisfied due to unhelpful hardware guidance.",
+                isTerminal: true,
+                choices: []
+            },
+            "s3a_2fa_verification": {
+                stageTitle: "Stage 3: Secure 2FA Guidance",
+                statement: "Okay, I plugged my phone into a charger and it turned on! The verification code just popped up. What should I do next?",
+                choices: [
+                    { text: "Wonderful! Please enter that 6-digit code directly on your screen. Support staff will never ask for your code.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Strict adherence to security compliance and clear guidance.", tag: "sec_pass", next: "s4_resolution_check" },
+                    { text: "Read that 6-digit code out loud to me so I can enter it into my internal system.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Major security compliance violation!", tag: "sec_fail", critical: true, next: "s_crit_security_fail" }
+                ]
+            },
+            "s3b_iforgot_recovery": {
+                stageTitle: "Stage 3: Account Recovery Guidance",
+                statement: "I opened iforgot.apple.com on my laptop like you suggested. It asks for my trusted phone number to verify identity.",
+                choices: [
+                    { text: "Enter your trusted phone number on screen to receive the recovery prompt securely.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Precise web recovery instructions.", tag: "tec_great", next: "s4_resolution_check" },
+                    { text: "Just give me your credit card details and password so I can bypass the web portal.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Severe security compliance violation!", tag: "sec_fail", critical: true, next: "s_crit_security_fail" }
+                ]
+            },
+            "s4_resolution_check": {
+                stageTitle: "Stage 4: Resolution & Verification",
+                statement: "It worked! The code went through and I am successfully signed into my account settings now!",
+                choices: [
+                    { text: "Fantastic! Let's test opening the App Store or Mail to verify everything is fully functional. Have a wonderful day!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Great verification of resolution and professional closure!", tag: "own_great", next: "end_success" },
+                    { text: "Great, your issue is fixed. Goodbye.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Rushed call closure without live verification.", tag: "com_fail", next: "end_suboptimal" }
+                ]
+            },
+            "end_success": {
+                stageTitle: "Call Successfully Concluded",
+                statement: "Customer is fully satisfied and verified.",
+                isTerminal: true,
+                choices: []
+            },
+            "end_suboptimal": {
+                stageTitle: "Call Concluded - Suboptimal",
+                statement: "Call ended with minimal closure.",
+                isTerminal: true,
+                choices: []
+            }
+        }
+    };
+
+    const scenarios = {
+        easy: [
+            branchingAppleScenario,
+            build7StageScenario("Account Password Recovery", "London, United Kingdom", "UK", {
+                s1: { q: "Hi, my name is Sarah Jenkins. I locked myself out of my account and I'm panicking!", c: [
+                    { text: "Thank you for contacting support. I completely understand how stressful a lockout is, but I'm here to help. May I verify your account email address?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Perfect greeting! Warm, empathetic, and established verification.", tag: "emp_great" },
+                    { text: "I can assist with your account lock today. Please state your current password directly over the phone so I can verify and unlock it right away.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Never ask for customer passwords! Major security violation.", tag: "sec_fail", critical: true },
+                    { text: "Hello, password lockouts happen frequently. Please confirm the exact email address associated with your account so we can begin.", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Acceptable, but missing strong initial empathy.", tag: "emp_miss" }
+                ]},
+                s2: { q: "My email is sarah.j@example.co.uk. Will I lose all my family photos stored in cloud storage?", c: [
+                    { text: "Rest assured, your photos stored in cloud storage remain completely safe while your account is locked.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Great reassurance! Addressed core emotional concern directly.", tag: "emp_great" },
+                    { text: "I am not entirely sure if your photos will survive an account lock, so let's just attempt a password reset first and see what happens to your files.", type: "wrong", scores: {emp:0, own:1, tec:0, com:1}, mood: "worried", feedback: "Causes severe unnecessary anxiety.", tag: "own_fail" },
+                    { text: "Generally speaking, stored photos do not get deleted during account password lockouts, so everything should be fine.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Vague response, lacks firm confidence.", tag: "tec_miss" }
+                ]},
+                s3: { q: "Thank goodness! Are you able to see if my device is connected to Wi-Fi right now?", c: [
+                    { text: "Let's check if your device can receive verification codes by ensuring it's connected to Wi-Fi or cellular data.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Accurate technical isolation step.", tag: "tec_great" },
+                    { text: "Wi-Fi connectivity has no impact on password reset procedures, so you should disconnect from all networks immediately before proceeding.", type: "wrong", scores: {emp:0, own:0, tec:0, com:1}, mood: "confused", feedback: "Incorrect. Internet connection is required for authentication.", tag: "tec_fail" },
+                    { text: "Please turn off your local Wi-Fi connection right now and rely exclusively on your cellular data connection to process the security update.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Unnecessary network restriction.", tag: "tec_miss" }
+                ]},
+                s4: { q: "It's asking me for a 2-factor authentication code on screen. Can I give it to you?", c: [
+                    { text: "For your security, please enter that code directly into your device screen. Support staff will never ask for your verification code.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Strict adherence to Security Compliance!", tag: "sec_pass" },
+                    { text: "Yes, please go ahead and read that 6-digit authentication code aloud so I can input it into my internal system to authorize your reset.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Major security compliance violation!", tag: "sec_fail", critical: true },
+                    { text: "You should type that code directly into your phone screen yourself without reading it to me, as advisors do not need to hear your code.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Correct direction, but missed explaining the security reasoning.", tag: "com_miss" }
+                ]},
+                s5: { q: "Okay, I entered it and now it's prompting me to set a new password. What are the requirements?", c: [
+                    { text: "Your new password must be at least 8 characters long, containing an uppercase letter, a lowercase letter, and a number.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Clear, precise technical guidance.", tag: "tec_great" },
+                    { text: "You can create any combination of characters you prefer without adhering to specific rules, as long as you remember it easily.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Unhelpful and inaccurate password policy.", tag: "tec_fail" },
+                    { text: "Make sure to create a lengthy password incorporating a mixture of letters and numbers to satisfy standard account safety guidelines.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Lacks exact requirement criteria.", tag: "tec_miss" }
+                ]},
+                s6: { q: "Awesome, it accepted my new password! Am I completely back in?", c: [
+                    { text: "Yes! Let's make sure you can test signing into your account settings right now to verify everything is working smoothly.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Great verification of resolution!", tag: "own_great" },
+                    { text: "Since your password was accepted by the server, your issue is fully resolved and you are ready to hang up now.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "confused", feedback: "Rushed call experience without verification.", tag: "own_fail" },
+                    { text: "Everything appears to be completed on our end now, so your account should be functioning properly moving forward.", type: "soso", scores: {emp:2, own:3, tec:3, com:2}, mood: "neutral", feedback: "Did not verify resolution live with customer.", tag: "own_miss" }
+                ]},
+                s7: { q: "It worked! All my photos are syncing! Thank you so much for your help today.", c: [
+                    { text: "It was my absolute pleasure! Thank you for contacting support. Have a wonderful rest of your day!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Warm, professional call closure!", tag: "com_great" },
+                    { text: "I am glad your photos are back. Thank you for calling support today and goodbye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt closure.", tag: "com_fail" },
+                    { text: "I am glad we could resolve your issue today. Thanks for calling support and take care.", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing, could be warmer.", tag: "com_miss" }
+                ]}
+            })
+        ],
+        medium: [
+            build7StageScenario("Laptop Wi-Fi Troubleshooting", "Madrid, Spain", "ES", {
+                s1: { q: "Hello, my name is Carlos. My laptop keeps disconnecting from Wi-Fi every 10 minutes during my online meetings!", c: [
+                    { text: "Hello Carlos! Welcome to support. I know how critical stable internet is for work meetings. I will take ownership of this to get your connection stable. May I confirm your serial number?", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Strong ownership and empathy.", tag: "emp_great" },
+                    { text: "Frequent disconnections indicate your wireless router hardware is faulty, so you must contact your Internet Service Provider for equipment replacement.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Deflected issue without diagnostic steps.", tag: "own_fail" },
+                    { text: "Let's look into your network issues today. Please provide your hardware serial number to locate your system records.", type: "soso", scores: {emp:2, own:3, tec:3, com:3}, mood: "neutral", feedback: "Direct, but missing deep empathy.", tag: "emp_miss" }
+                ]},
+                s2: { q: "My other devices like my phone stay connected to the Wi-Fi just fine, so it's definitely only happening on the laptop.", c: [
+                    { text: "That is very helpful diagnostic information, Carlos. That isolates the issue specifically to the laptop's network configurations.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Validated customer troubleshooting observation.", tag: "tec_great" },
+                    { text: "Mobile devices handle Wi-Fi protocols differently, so your phone is likely dropping signal repeatedly without triggering visible system alerts.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Argued with customer.", tag: "emp_fail" },
+                    { text: "Noted. Mobile and desktop hardware utilize separate antenna architectures during active network sessions.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Acknowledged without technical context.", tag: "tec_miss" }
+                ]},
+                s3: { q: "What is our first step to fix the network settings?", c: [
+                    { text: "Let's start by removing the Wi-Fi network under System Settings > Network > Wi-Fi > Known Networks, and then reconnect.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Standard L1 network resetting step.", tag: "tec_great" },
+                    { text: "We must erase your hard drive and perform a fresh operating system installation right now to restore corrupted network drivers.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Extreme and unnecessary troubleshooting step.", tag: "tec_fail" },
+                    { text: "Toggle your Wi-Fi control switch off and back on within the control center to attempt a basic handshake refresh.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Basic step, usually insufficient for dropping Wi-Fi.", tag: "tec_miss" }
+                ]},
+                s4: { q: "I re-added the network, but the signal icon still flickers. Should we run a diagnostic scan?", c: [
+                    { text: "Yes! Hold the Option key and click the Wi-Fi icon in the top menu bar, then select 'Open Wireless Diagnostics' to run a built-in analysis.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Advanced L2 diagnostic shortcut knowledge!", tag: "tec_great" },
+                    { text: "The system does not contain built-in network diagnostic utilities, so we cannot perform internal signal analysis on your hardware.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Incorrect technical information.", tag: "tec_fail" },
+                    { text: "Search online for third-party network scanning software to evaluate signal interference surrounding your workstation.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "worried", feedback: "Unsafe recommendation.", tag: "tec_miss" }
+                ]},
+                s5: { q: "The diagnostic report recommended renewing the DHCP lease. How do I do that?", c: [
+                    { text: "Go to System Settings > Network > Wi-Fi > Details > TCP/IP, and click 'Renew DHCP Lease'.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Exact navigation provided.", tag: "tec_great" },
+                    { text: "Open Terminal command line and execute commands to wipe system root network preference files.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Dangerous command prompt suggestion!", tag: "tec_fail" },
+                    { text: "Navigate into advanced network configurations and execute an IP address refresh within your TCP settings.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Imprecise path.", tag: "tec_miss" }
+                ]},
+                s6: { q: "I clicked Renew DHCP Lease, and the connection stabilized immediately! All full bars now!", c: [
+                    { text: "Excellent! We successfully refreshed your laptop's IP configuration on the network. Your meetings should run smoothly now.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Validated fix and technical explanation.", tag: "own_great" },
+                    { text: "Your network configuration has successfully updated to reflect new parameters.", type: "wrong", scores: {emp:0, own:0, tec:1, com:0}, mood: "neutral", feedback: "Unprofessional and dry.", tag: "com_fail" },
+                    { text: "Renewing the DHCP lease resolved the IP routing bottleneck on your local network as intended.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Simple acknowledgment.", tag: "own_miss" }
+                ]},
+                s7: { q: "Thank you so much, Carlos! You saved my work day!", c: [
+                    { text: "It was my absolute pleasure, Carlos! Thank you for contacting support. Have a wonderful day!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Warm and courteous closing.", tag: "com_great" },
+                    { text: "Thank you for contacting support today. Goodbye Carlos.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt.", tag: "com_fail" },
+                    { text: "Glad we could resolve your connectivity issue today, Carlos. Have a great day!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Casual closing.", tag: "com_miss" }
+                ]}
+            })
+        ],
+        hard: [
+            build7StageScenario("Compromised Account & Escalation", "Lagos, Nigeria", "NG", {
+                s1: { q: "I've been transferred three times! Someone in another country logged into my account and changed my password! Get me a supervisor NOW!", c: [
+                    { text: "I completely understand your frustration regarding the transfers and the urgency of securing your account. I am taking full ownership of your case right now, and we will handle this together.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Flawless de-escalation! Took immediate ownership.", tag: "emp_great" },
+                    { text: "Supervisors are unavailable to receive inbound transfers, so you must lower your voice immediately or I will terminate this call.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Hostile response violating customer care guidelines.", tag: "own_fail" },
+                    { text: "I apologize for the multiple transfers you experienced today. Please hold while I check if a team supervisor is available to take your call.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "impatient", feedback: "Blind transfer attempt without initial triage.", tag: "own_miss" }
+                ]},
+                s2: { q: "Fine! But if my personal data is compromised, support is responsible. What is our first security step?", c: [
+                    { text: "Let's immediately start account recovery and password reset through the official recovery portal to revoke any unauthorized active sessions.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "cooperative", feedback: "Actionable L2 security protocol initiated.", tag: "sec_pass" },
+                    { text: "We should allow 24 hours to observe account activity before taking security action, in case the intruder logs out voluntarily.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Passive response to an active security breach!", tag: "sec_fail", critical: true },
+                    { text: "Please attempt logging into your account again on your primary device to check if your existing password still functions.", type: "soso", scores: {emp:2, own:2, tec:2, com:2}, mood: "neutral", feedback: "Basic step, lacks formal security protocol.", tag: "tec_miss" }
+                ]},
+                s3: { q: "I got a text with a 6-digit verification code. Read it off to you so you can fix it?", c: [
+                    { text: "For your protection, never share verification codes over the phone. Please enter that code directly on the secure screen on your device.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "relieved", feedback: "Strict adherence to Security Compliance!", tag: "sec_pass" },
+                    { text: "Yes, please state that 6-digit verification code immediately so I can authenticate your identity in our administrative tool.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Major security policy breach!", tag: "sec_fail", critical: true },
+                    { text: "You should enter that code into your device screen directly without speaking it aloud, as internal policy restricts verbal code collection.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Correct direction, but missed policy explanation.", tag: "com_miss" }
+                ]},
+                s4: { q: "Okay, I changed the password! How do I remove the hacker's unauthorized devices from my account?", c: [
+                    { text: "Under Settings > [Your Name], scroll down to the device list. Tap any unrecognized device and select 'Remove from Account'.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Clear security remediation instruction.", tag: "sec_pass" },
+                    { text: "Hardware devices registered to an account cannot be removed once linked, so those devices remain permanently attached.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "False technical information.", tag: "tec_fail" },
+                    { text: "The safest option to eliminate unauthorized hardware access is requesting complete deletion of your account.", type: "soso", scores: {emp:1, own:1, tec:1, com:1}, mood: "worried", feedback: "Overly destructive suggestion.", tag: "tec_miss" }
+                ]},
+                s5: { q: "I removed an unknown computer from my device list! Should I also turn on two-factor authentication features?", c: [
+                    { text: "Absolutely. Turning on two-factor authentication and checking your trusted phone numbers ensures only you can authorize future sign-ins.", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Proactive security hardening guidance.", tag: "sec_pass" },
+                    { text: "Two-Factor Authentication introduces unnecessary login delays and should remain disabled to simplify your routine access.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "confused", feedback: "Discouraged security features.", tag: "sec_fail", critical: true },
+                    { text: "Enabling two-factor authentication provides an additional layer of security, so activating it on your account is beneficial.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Brief confirmation.", tag: "tec_miss" }
+                ]},
+                s6: { q: "My account is fully secured, unauthorized devices are removed, and my password is updated! Do I still need a supervisor?", c: [
+                    { text: "I am happy to connect you to a supervisor if you still wish to provide feedback, but I'm glad we fully secured your account together!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Respectful boundary setting and successful resolution.", tag: "own_great" },
+                    { text: "As you can see, requesting a supervisor was unnecessary since I was fully capable of resolving your issue independently.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "angry", feedback: "Arrogant closing tone.", tag: "own_fail" },
+                    { text: "Given that your account is now fully secured, we can conclude this support session without involving supervisory staff.", type: "soso", scores: {emp:2, own:2, tec:3, com:2}, mood: "neutral", feedback: "Dismissive of original supervisor request.", tag: "own_miss" }
+                ]},
+                s7: { q: "No, you handled this brilliantly on your own. Thank you for taking charge!", c: [
+                    { text: "It was my duty and pleasure to assist you. Thank you for contacting support, and have a safe day!", type: "perfect", scores: {emp:5, own:5, tec:5, com:5}, mood: "delighted", feedback: "Exceptional professional de-escalation closure!", tag: "com_great" },
+                    { text: "Thank you for reaching support today. Goodbye.", type: "wrong", scores: {emp:0, own:0, tec:0, com:0}, mood: "neutral", feedback: "Abrupt.", tag: "com_fail" },
+                    { text: "Thank you for your feedback. Have a great day ahead!", type: "soso", scores: {emp:2, own:2, tec:2, com:3}, mood: "delighted", feedback: "Standard closing.", tag: "com_miss" }
+                ]}
+            })
+        ]
+    };
+
+    let selectedDiff = 'easy';
+    let currentScenario = null;
+    let currentStage = 0;
+    let currentStageKey = null;
+    let pendingNextKey = null;
+    let isTerminalState = false;
+    
+    let totalScores = {};
+    let criticalFailure = false;
+    let selectedChoiceTags = [];
+    const activeCategories = ['emp', 'own', 'tec', 'com'];
+    const maxPointsPerCategory = 5;
+
+    function selectDifficulty(diff, el) {
+        selectedDiff = diff;
+        document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    function startSimulation() {
+        const pool = scenarios[selectedDiff];
+        currentScenario = pool[Math.floor(Math.random() * pool.length)];
+
+        document.getElementById('screen-menu').classList.remove('active');
+        document.getElementById('screen-game').classList.add('active');
+        
+        totalScores = {
+            emp: 0, own: 0, tec: 0, com: 0,
+            sec: 0, pro: 0, cal: 0, res: 0, eff: 0
+        };
+        criticalFailure = false;
+        selectedChoiceTags = [];
+        isTerminalState = false;
+        
+        if (currentScenario.isBranching) {
+            currentStageKey = currentScenario.startStage;
+        } else {
+            currentStage = 0;
+        }
+        
+        loadStage();
+    }
+
+    function loadStage() {
+        let stage;
+        if (currentScenario.isBranching) {
+            stage = currentScenario.stages[currentStageKey];
+            document.getElementById('stage-indicator').innerText = stage.stageTitle;
+        } else {
+            stage = currentScenario.stages[currentStage];
+            document.getElementById('stage-indicator').innerText = `${stage.stageTitle} (Stage ${currentStage + 1} of 7)`;
+        }
+
+        document.getElementById('cust-avatar').innerText = currentScenario.initials;
+        document.getElementById('cust-name').innerText = "Customer (" + currentScenario.initials + ")";
+        document.getElementById('cust-region').innerText = currentScenario.region;
+        document.getElementById('customer-statement').innerText = `"${stage.statement}"`;
+
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+        document.getElementById('coaching-box').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+
+        if (stage.isTerminal) {
+            // Terminal stage reached immediately (e.g. abrupt disconnect)
+            document.getElementById('next-btn').innerText = "View Final Call Report";
+            document.getElementById('next-btn').style.display = 'block';
+            isTerminalState = true;
+            return;
+        }
+
+        let choices = [...stage.choices].sort(() => Math.random() - 0.5);
+
+        choices.forEach(ch => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = `• ${ch.text}`;
+            btn.onclick = () => selectOption(ch, btn);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function selectOption(choice, btnEl) {
+        document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+        
+        if (choice.type === 'perfect') btnEl.classList.add('selected-perfect');
+        else if (choice.type === 'soso') btnEl.classList.add('selected-soso');
+        else btnEl.classList.add('selected-wrong');
+
+        if (choice.scores) {
+            Object.keys(choice.scores).forEach(cat => {
+                if (totalScores[cat] !== undefined) {
+                    totalScores[cat] += choice.scores[cat];
+                } else {
+                    totalScores[cat] = choice.scores[cat];
+                }
+            });
+        }
+
+        if (choice.critical) {
+            criticalFailure = true;
+        }
+
+        if (choice.tag) {
+            selectedChoiceTags.push(choice.tag);
+        }
+
+        document.getElementById('tick-emp').innerText = totalScores.emp;
+        document.getElementById('tick-own').innerText = totalScores.own;
+        document.getElementById('tick-tec').innerText = totalScores.tec;
+        document.getElementById('tick-com').innerText = totalScores.com;
+
+        const moodTag = document.getElementById('cust-mood');
+        moodTag.className = `mood-tag mood-${choice.mood}`;
+        moodTag.innerText = choice.mood;
+
+        const coachBox = document.getElementById('coaching-box');
+        document.getElementById('coaching-text').innerText = choice.feedback;
+        coachBox.style.display = 'block';
+
+        const nextBtn = document.getElementById('next-btn');
+
+        if (currentScenario.isBranching) {
+            pendingNextKey = choice.next;
+            const targetStage = currentScenario.stages[pendingNextKey];
+            isTerminalState = targetStage ? !!targetStage.isTerminal : true;
+
+            if (isTerminalState) {
+                nextBtn.innerText = "View Final Call Report";
+            } else {
+                nextBtn.innerText = "Continue Call";
+            }
+        } else {
+            if (currentStage >= currentScenario.stages.length - 1) {
+                nextBtn.innerText = "View Final 7-Stage Call Report";
+                isTerminalState = true;
+            } else {
+                nextBtn.innerText = `Advance to Stage ${currentStage + 2}`;
+                isTerminalState = false;
+            }
+        }
+        nextBtn.style.display = 'block';
+    }
+
+    function nextStage() {
+        if (currentScenario.isBranching) {
+            if (isTerminalState) {
+                showReport();
+            } else {
+                currentStageKey = pendingNextKey;
+                loadStage();
+            }
+        } else {
+            if (currentStage >= currentScenario.stages.length - 1) {
+                showReport();
+            } else {
+                currentStage++;
+                loadStage();
+            }
+        }
+    }
+
+    function generateCategoryCoaching(catName, score, maxScore) {
+        const ratio = score / maxScore;
+        const tags = selectedChoiceTags;
+
+        let strengths = [];
+        let weaknesses = [];
+        let recommendation = "";
+
+        if (catName === "Empathy (EMP)") {
+            if (ratio >= 0.8) {
+                strengths.push("maintained a warm, reassuring tone throughout the customer's initial distress");
+                strengths.push("actively validated the customer's emotional concerns before jumping into troubleshooting");
+            } else if (ratio >= 0.5) {
+                strengths.push("handled initial customer contact with professional neutrality");
+                weaknesses.push("missed opportunities to provide strong reassurance during high-stress moments");
+            } else {
+                weaknesses.push("adopted an abrupt or transactional tone when the customer expressed panic or anxiety");
+                weaknesses.push("failed to establish rapport or validate the customer's immediate emotional state");
+            }
+
+            if (tags.includes('emp_fail')) {
+                weaknesses.push("came across as dismissive or cold when the customer was seeking reassurance");
+            }
+
+            if (ratio >= 0.8) {
+                recommendation = "Continue using empathetic anchoring statements right at the start of every call.";
+            } else if (ratio >= 0.5) {
+                recommendation = "Focus on acknowledging customer anxiety explicitly in early stages before requesting verification details.";
+            } else {
+                recommendation = "Prioritize human-first de-escalation. Always acknowledge emotional distress before requesting account credentials.";
+            }
+        } 
+        else if (catName === "Ownership (OWN)") {
+            if (ratio >= 0.8) {
+                strengths.push("took firm and reassuring ownership of the customer's issue from start to finish");
+                strengths.push("guided the customer clearly through resolution and verified success before closing");
+            } else if (ratio >= 0.5) {
+                strengths.push("managed basic call progression adequately");
+                weaknesses.push("exhibited occasional rushed behavior or skipped live verification of the final fix");
+            } else {
+                weaknesses.push("demonstrated poor ownership by deflecting responsibility or rushing the customer off the line");
+                weaknesses.push("failed to verify that the issue was fully resolved before initiating call closure");
+            }
+
+            if (ratio >= 0.8) {
+                recommendation = "Maintain this high standard of proactive ownership. Your closing verifications ensure zero repeat contacts.";
+            } else if (ratio >= 0.5) {
+                recommendation = "Ensure you always test the solution live with the customer before concluding the call.";
+            } else {
+                recommendation = "Take charge of the interaction. Avoid abrupt closures and always confirm operational success.";
+            }
+        }
+        else if (catName === "Technical Knowledge (TEC)") {
+            if (ratio >= 0.8) {
+                strengths.push("executed precise, policy-compliant troubleshooting steps aligned with official support documentation");
+                strengths.push("accurately isolated authentication and recovery pathways without causing unnecessary alarm");
+            } else if (ratio >= 0.5) {
+                strengths.push("navigated standard troubleshooting pathways with moderate accuracy");
+                weaknesses.push("relied on vague guidance or missed specific isolation steps");
+            } else {
+                weaknesses.push("recommended incorrect technical procedures or unverified workarounds");
+                weaknesses.push("misunderstood core device behavior or account recovery architecture");
+            }
+
+            if (tags.includes('tec_fail')) {
+                weaknesses.push("provided inaccurate technical guidance that hindered resolution");
+            }
+
+            if (ratio >= 0.8) {
+                recommendation = "Your technical execution was spot on. Continue leveraging official knowledge base pathways.";
+            } else if (ratio >= 0.5) {
+                recommendation = "Double-check technical troubleshooting workflows to ensure precise adherence to support standards.";
+            } else {
+                recommendation = "Review core troubleshooting articles and account recovery guidelines.";
+            }
+        }
+        else if (catName === "Communication (COM)") {
+            if (ratio >= 0.8) {
+                strengths.push("delivered clear, concise, and professional explanations without technical jargon");
+                strengths.push("provided structured step-by-step guidance that kept the customer confident and informed");
+            } else if (ratio >= 0.5) {
+                strengths.push("communicated instructions with reasonable clarity");
+                weaknesses.push("occasionally used phrasing that lacked warmth or precision during critical guidance");
+            } else {
+                weaknesses.push("used abrupt phrasing, unclear instructions, or unprofessional closing statements");
+                weaknesses.push("failed to explain the reasoning behind security prompts or system requirements");
+            }
+
+            if (tags.includes('com_fail')) {
+                weaknesses.push("concluded the call abruptly without maintaining standard professional etiquette");
+            }
+
+            if (ratio >= 0.8) {
+                recommendation = "Maintain your clear communication style. Your structured explanations make complex steps easy to follow.";
+            } else if (ratio >= 0.5) {
+                recommendation = "Refine your phrasing to ensure all instructions are warm, structured, and easy to execute.";
+            } else {
+                recommendation = "Focus on professional, branded call phrasing and clear step-by-step delivery.";
+            }
+        }
+
+        let feedbackString = `<strong>${catName} (${score}/${maxScore}):</strong> `;
+        if (strengths.length > 0) {
+            feedbackString += `You successfully ${strengths[0]}. `;
+        }
+        if (weaknesses.length > 0) {
+            feedbackString += `However, you ${weaknesses[0]}. `;
+        }
+        feedbackString += `<em>Coach Tip:</em> ${recommendation}`;
+        return feedbackString;
+    }
+
+    function showReport() {
+        document.getElementById('screen-game').classList.remove('active');
+        document.getElementById('screen-report').classList.add('active');
+
+        // Dynamic max score calculation supporting both linear and branching scenarios
+        const maxScorePerCategory = currentScenario.isBranching ? currentScenario.maxScorePerCategory : (currentScenario.stages.length * maxPointsPerCategory);
+        const maxPossibleScore = maxScorePerCategory * activeCategories.length;
+
+        const totalEarned = activeCategories.reduce((sum, cat) => sum + (totalScores[cat] || 0), 0);
+        const pct = Math.min(100, Math.max(0, Math.round((totalEarned / maxPossibleScore) * 100)));
+
+        document.getElementById('final-grade').innerText = `${pct}%`;
+        document.getElementById('rep-emp').innerText = totalScores.emp;
+        document.getElementById('rep-own').innerText = totalScores.own;
+        document.getElementById('rep-tec').innerText = totalScores.tec;
+        document.getElementById('rep-com').innerText = totalScores.com;
+
+        document.getElementById('max-emp').innerText = maxScorePerCategory;
+        document.getElementById('max-own').innerText = maxScorePerCategory;
+        document.getElementById('max-tec').innerText = maxScorePerCategory;
+        document.getElementById('max-com').innerText = maxScorePerCategory;
+
+        const critIndicator = document.getElementById('critical-failure-indicator');
+        if (criticalFailure) {
+            critIndicator.style.display = 'block';
+        } else {
+            critIndicator.style.display = 'none';
+        }
+
+        let rating = "Needs Retraining";
+        if (pct >= 90) rating = "Senior Technical Advisor";
+        else if (pct >= 75) rating = "Proficient Technical Advisor";
+        else if (pct >= 60) rating = "Developing Advisor";
+
+        document.getElementById('final-rating').innerText = rating;
+        
+        let coachingHtml = "";
+        
+        if (criticalFailure) {
+            coachingHtml += `<div style="margin-bottom: 12px; padding: 10px; background: rgba(255, 59, 48, 0.1); border-left: 4px solid var(--danger); border-radius: 6px;">
+                <strong>Compliance Warning:</strong> A critical security or compliance violation was detected during this simulation (such as asking for passwords or 2FA verification codes). Official support policy strictly prohibits this behavior. Review security guidelines immediately.
+            </div>`;
+        }
+
+        if (pct >= 90) {
+            coachingHtml += `<p style="margin-bottom: 10px;"><strong>Overall Performance (Outstanding):</strong> Excellent execution across all competencies. You successfully navigated the branching call flow.</p>`;
+        } else if (pct >= 60) {
+            coachingHtml += `<p style="margin-bottom: 10px;"><strong>Overall Performance (Competent / Developing):</strong> You successfully handled parts of the call, but targeted gaps impacted your score.</p>`;
+        } else {
+            coachingHtml += `<p style="margin-bottom: 10px; color: var(--danger);"><strong>Overall Performance (Critical Review Needed):</strong> This simulation revealed fundamental problems in compliance adherence or technical guidance.</p>`;
+        }
+
+        coachingHtml += `
+            <div class="category-coach-box">${generateCategoryCoaching("Empathy (EMP)", totalScores.emp, maxScorePerCategory)}</div>
+            <div class="category-coach-box">${generateCategoryCoaching("Ownership (OWN)", totalScores.own, maxScorePerCategory)}</div>
+            <div class="category-coach-box">${generateCategoryCoaching("Technical Knowledge (TEC)", totalScores.tec, maxScorePerCategory)}</div>
+            <div class="category-coach-box">${generateCategoryCoaching("Communication (COM)", totalScores.com, maxScorePerCategory)}</div>
+        `;
+
+        document.getElementById('personalized-coaching').innerHTML = coachingHtml;
+    }
+
+    function restartLab() {
+        document.getElementById('screen-report').classList.remove('active');
+        document.getElementById('screen-menu').classList.add('active');
+    }
+</script>
+</body>
+</html>
