@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Stage 1.1.1: Shared Accumulation & Test Integrity)
+   TSCL 2.2 CORE APPLICATION ENGINE (Stage 1.1.2: Complete Invalid-State Test)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -1684,7 +1684,7 @@ const SCENARIOS = [
         steps: [
             {
                 id: 'esc-06-1',
-                prompt: "Selina threatens a bank chargeback and fraud claims over a disputed charge. How do you handle this?",
+                prompt: "Selina hears how upset you are about this charge. Let's look at the transaction details together so I can submit an official refund review request for you right now.",
                 choices: [
                     { text: "I hear how upset you are about this charge. Let's look at the transaction details together so I can submit an official refund review request for you right now.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 95, safety: 100 }, clarity: 95, feedback: "Calm de-escalation offering immediate formal review pathway instead of arguing.", nextStep: 'end-success' },
                     { text: "Go ahead and file a chargeback, we'll just ban your account.", scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 10 }, clarity: 80, feedback: "Combative and inflammatory response that destroys customer trust.", nextStep: 'end-fail' }
@@ -1884,7 +1884,7 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 }
 
 /* ==========================================================================
-   AUTOMATED DEFECT-INJECTION TEST RUNNER (STAGE 1.1.1 REFACTORED)
+   AUTOMATED DEFECT-INJECTION TEST RUNNER (STAGE 1.1.2 UPGRADED TEST 12)
    ========================================================================== */
 function runQADefectInjectionTests() {
     const results = [];
@@ -2025,50 +2025,83 @@ function runQADefectInjectionTests() {
         results.push({ test: '11. Valid complete scoring record', passed: rep.criticalErrors.length === 0 });
     } catch (e) { results.push({ test: '11. Valid complete scoring record', passed: false, error: e.message }); }
 
-    // --- TEST 12 REFACTORED (Stage 1.1.1: Invokes Actual Production applyChoiceScoring Helper) ---
+    // --- TEST 12 UPGRADED (Stage 1.1.2: Complete Invalid-State Preservation Test) ---
     try {
-        const testSession = {
-            scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50, clarity: 50 },
-            totalChoicesMade: 0,
-            unrelatedProperty: 'unchanged-value'
-        };
-        const initialEmpathy = testSession.scores.empathy;
-        const initialTotal = testSession.totalChoicesMade;
-        const initialUnrelated = testSession.unrelatedProperty;
-
-        // 1. Invalid choice test using applyChoiceScoring
-        const invalidChoice = {
-            scores: { empathy: NaN, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 90 },
-            clarity: 90
+        const initialBaselineState = {
+            scores: { empathy: 11, acknowledgement: 22, reassurance: 33, ownership: 44, technical: 55, safety: 66, clarity: 77 },
+            totalChoicesMade: 4,
+            unrelatedSessionPropA: 'unchanged-string-alpha',
+            unrelatedSessionPropB: 777
         };
 
-        const invalidResult = applyChoiceScoring(testSession, invalidChoice);
-        const preserved = !invalidResult.success &&
-                          testSession.scores.empathy === initialEmpathy &&
-                          testSession.totalChoicesMade === initialTotal &&
-                          testSession.unrelatedProperty === initialUnrelated;
+        const invalidChoicesToTest = [
+            { name: 'NaN score', choice: { scores: { empathy: NaN, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50 }, clarity: 50 } },
+            { name: 'Infinity score', choice: { scores: { empathy: 50, acknowledgement: Infinity, reassurance: 50, ownership: 50, technical: 50, safety: 50 }, clarity: 50 } },
+            { name: 'Missing dimension', choice: { scores: { acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50 }, clarity: 50 } },
+            { name: 'Out-of-range score', choice: { scores: { empathy: 120, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50 }, clarity: 50 } },
+            { name: 'Missing clarity', choice: { scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50 } } }
+        ];
 
-        // 2. Valid choice test using applyChoiceScoring
+        let invalidTestPassed = true;
+        let failureReason = '';
+
+        for (const testCase of invalidChoicesToTest) {
+            const testSession = JSON.parse(JSON.stringify(initialBaselineState));
+            const result = applyChoiceScoring(testSession, testCase.choice);
+
+            if (result.success !== false) {
+                invalidTestPassed = false;
+                failureReason = `Case [${testCase.name}] returned success=true instead of false.`;
+                break;
+            }
+            if (testSession.totalChoicesMade !== initialBaselineState.totalChoicesMade) {
+                invalidTestPassed = false;
+                failureReason = `Case [${testCase.name}] mutated totalChoicesMade.`;
+                break;
+            }
+            if (testSession.unrelatedSessionPropA !== initialBaselineState.unrelatedSessionPropA || testSession.unrelatedSessionPropB !== initialBaselineState.unrelatedSessionPropB) {
+                invalidTestPassed = false;
+                failureReason = `Case [${testCase.name}] mutated unrelated session properties.`;
+                break;
+            }
+            const dims = ['empathy', 'acknowledgement', 'reassurance', 'ownership', 'technical', 'safety', 'clarity'];
+            for (const dim of dims) {
+                if (testSession.scores[dim] !== initialBaselineState.scores[dim]) {
+                    invalidTestPassed = false;
+                    failureReason = `Case [${testCase.name}] mutated accumulator "${dim}" from ${initialBaselineState.scores[dim]} to ${testSession.scores[dim]}.`;
+                    break;
+                }
+            }
+            if (!invalidTestPassed) break;
+        }
+
+        // 2. Valid choice accumulation test
+        const validSession = JSON.parse(JSON.stringify(initialBaselineState));
         const validChoice = {
-            scores: { empathy: 80, acknowledgement: 85, reassurance: 90, ownership: 95, technical: 90, safety: 100 },
-            clarity: 90
+            scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 10, safety: 10 },
+            clarity: 10
         };
+        const validResult = applyChoiceScoring(validSession, validChoice);
 
-        const validResult = applyChoiceScoring(testSession, validChoice);
-        const accumulatedCorrectly = validResult.success &&
-                                     testSession.scores.empathy === initialEmpathy + 80 &&
-                                     testSession.scores.acknowledgement === 50 + 85 &&
-                                     testSession.scores.reassurance === 50 + 90 &&
-                                     testSession.scores.ownership === 50 + 95 &&
-                                     testSession.scores.technical === 50 + 90 &&
-                                     testSession.scores.safety === 50 + 100 &&
-                                     testSession.scores.clarity === 50 + 90 &&
-                                     testSession.totalChoicesMade === 1 &&
-                                     testSession.unrelatedProperty === 'unchanged-value';
+        const validTestPassed = validResult.success === true &&
+                                validSession.scores.empathy === 21 &&
+                                validSession.scores.acknowledgement === 32 &&
+                                validSession.scores.reassurance === 43 &&
+                                validSession.scores.ownership === 54 &&
+                                validSession.scores.technical === 65 &&
+                                validSession.scores.safety === 76 &&
+                                validSession.scores.clarity === 87 &&
+                                validSession.totalChoicesMade === 5 &&
+                                validSession.unrelatedSessionPropA === 'unchanged-string-alpha' &&
+                                validSession.unrelatedSessionPropB === 777;
 
-        results.push({ test: '12. Shared validator & applyChoiceScoring runtime isolation & accumulation', passed: preserved && accumulatedCorrectly });
+        if (!validTestPassed && invalidTestPassed) {
+            failureReason = 'Valid choice accumulation assertion failed.';
+        }
+
+        results.push({ test: '12. Complete Invalid-State Preservation & Valid Accumulation', passed: invalidTestPassed && validTestPassed, error: failureReason || null });
     } catch (e) {
-        results.push({ test: '12. Shared validator & applyChoiceScoring runtime isolation & accumulation', passed: false, error: e.message });
+        results.push({ test: '12. Complete Invalid-State Preservation & Valid Accumulation', passed: false, error: e.message });
     }
 
     return results;
@@ -2305,7 +2338,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Stage 1.1.1 Shared Accumulation) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Stage 1.1.2 Complete Invalid-State Test) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2328,10 +2361,10 @@ const app = {
                         ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">4. Defect-Injection Verification Suite (Test 12 using applyChoiceScoring)</div>
+                    <div class="qa-section-title">4. Defect-Injection Verification Suite (Test 12 Complete Invalid-State & Accumulation Test)</div>
                     <div class="qa-list">
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Defect Tests</button>
-                        ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'CAUGHT (PASS)' : 'FAILED'}</strong></div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
+                        ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'CAUGHT (PASS)' : 'FAILED'}</strong> ${t.error ? `(${t.error})` : ''}</div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
                     </div>
                 </div>
             ` : ''}
@@ -2416,7 +2449,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE (STAGE 1.1.1: USES applyChoiceScoring)
+       CALL SIMULATOR ENGINE (STAGE 1.1.2: USES applyChoiceScoring)
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
@@ -2526,8 +2559,7 @@ const app = {
         const choice = choices[shuffledChoiceIndex];
 
         // ====================================================================
-        // STAGE 1.1.1 REQUIREMENT: USE SHARED applyChoiceScoring()
-        // Validates and accumulates scoring atomically; rejects if invalid.
+        // STAGE 1.1.2 REQUIREMENT: USE SHARED applyChoiceScoring()
         // ====================================================================
         const scoringResult = applyChoiceScoring(currentSession, choice);
         if (!scoringResult.success) {
@@ -2544,7 +2576,6 @@ const app = {
             return;
         }
 
-        // Personality modifiers, decision logs, history, and progression execute only upon successful scoring
         let pNote = '';
         let personalityTrustDelta = 0;
         if (currentSession.selectedPersonality && currentSession.selectedPersonality.modifierFn) {
