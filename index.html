@@ -643,6 +643,20 @@
             align-items: center;
         }
 
+        .qa-section-title {
+            font-weight: 700;
+            margin-top: 10px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.72rem;
+        }
+
+        .qa-list {
+            margin-left: 14px;
+            margin-bottom: 8px;
+        }
+
         .disclaimer {
             font-size: 0.7rem;
             color: var(--text-dim);
@@ -684,9 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE
-   (Foundation: TSCL 2.1 | Enhanced with Answer Randomization, Dynamic Personalities,
-   Clarity Scoring, and Hidden Developer QA Panel)
+   TSCL 2.2 CORE APPLICATION ENGINE (Phase 1: Upgraded Developer QA Engine)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -735,7 +747,7 @@ let logoClickTimer = null;
 let qaPanelVisible = false;
 
 /* ==========================================================================
-   DYNAMIC CUSTOMER PERSONALITIES (Behavioral Modifiers & Dialogue Reactions)
+   DYNAMIC CUSTOMER PERSONALITIES
    ========================================================================== */
 const CUSTOMER_PERSONALITIES = [
     {
@@ -806,7 +818,7 @@ const CUSTOMER_PERSONALITIES = [
 ];
 
 /* ==========================================================================
-   PHRASE MEMORY EXERCISES (Balanced Lengths & Randomized Positions)
+   PHRASE MEMORY EXERCISES
    ========================================================================== */
 const PHRASE_MEMORY_EXERCISES = [
     {
@@ -922,7 +934,7 @@ const PHRASE_MEMORY_EXERCISES = [
 ];
 
 /* ==========================================================================
-   CANONICAL SCENARIO LIBRARY (31 Fully Authored Scenarios across 5 Categories)
+   CANONICAL SCENARIO LIBRARY (31 Fully Authored Scenarios)
    ========================================================================== */
 const SCENARIOS = [
     // --- CATEGORY 1: Apple Account & Security (Scenarios 1-7) ---
@@ -939,19 +951,22 @@ const SCENARIOS = [
                 choices: [
                     {
                         text: "Try restarting your phone and enter the password again.",
-                        scores: { empathy: 30, acknowledgement: 20, reassurance: 40, ownership: 40, technical: 50, safety: 70, clarity: 85, trustDelta: -10 },
+                        scores: { empathy: 30, acknowledgement: 20, reassurance: 40, ownership: 40, technical: 50, safety: 70 },
+                        clarity: 85,
                         feedback: "Too abrupt. Skips empathy and gives generic advice without investigating the loop.",
                         nextStep: 'step-2b'
                     },
                     {
                         text: "I understand how stressful it is to be locked out when your work documents are dependent on your account. Let's work through this step by step to restore access.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 80, safety: 90, clarity: 95, trustDelta: 15 },
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 80, safety: 90 },
+                        clarity: 95,
                         feedback: "Excellent empathy and reassurance. Validates work anxiety and establishes collaborative ownership.",
                         nextStep: 'step-2a'
                     },
                     {
                         text: "Don't worry, your work documents are totally safe. What verification method are you using?",
-                        scores: { empathy: 70, acknowledgement: 60, reassurance: 80, ownership: 70, technical: 75, safety: 85, clarity: 90, trustDelta: 5 },
+                        scores: { empathy: 70, acknowledgement: 60, reassurance: 80, ownership: 70, technical: 75, safety: 85 },
+                        clarity: 90,
                         feedback: "Good reassurance, though a bit quick to guarantee data safety before diagnosing the loop.",
                         nextStep: 'step-2a'
                     }
@@ -963,19 +978,22 @@ const SCENARIOS = [
                 choices: [
                     {
                         text: "Let's check if your device's date and time are set to 'Set Automatically', as time synchronization discrepancies frequently cause server verification loops.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 12 },
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 100, safety: 100 },
+                        clarity: 95,
                         feedback: "Outstanding technical reasoning. Date/time sync is a primary root cause for SSL/verification loops.",
                         nextStep: 'step-3'
                     },
                     {
                         text: "Your internet must be bad. Switch to cellular data.",
-                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 60, safety: 70, clarity: 80, trustDelta: -5 },
+                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 60, safety: 70 },
+                        clarity: 80,
                         feedback: "Blames connection without verification. Too dismissive.",
                         nextStep: 'step-3'
                     },
                     {
                         text: "Let's reset your network settings right now.",
-                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 70, technical: 70, safety: 65, clarity: 85, trustDelta: -2 },
+                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 70, technical: 70, safety: 65 },
+                        clarity: 85,
                         feedback: "A bit aggressive as a second step before checking basic time sync parameters.",
                         nextStep: 'step-3'
                     }
@@ -987,13 +1005,15 @@ const SCENARIOS = [
                 choices: [
                     {
                         text: "Let's reset your network settings.",
-                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 70, technical: 70, safety: 65, clarity: 85, trustDelta: -2 },
+                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 70, technical: 70, safety: 65 },
+                        clarity: 85,
                         feedback: "A bit aggressive before checking basic time sync or connectivity parameters.",
                         nextStep: 'step-3'
                     },
                     {
                         text: "I hear your frustration since the restart didn't resolve it. Let's check your date and time settings next.",
-                        scores: { empathy: 85, acknowledgement: 90, reassurance: 85, ownership: 85, technical: 95, safety: 95, clarity: 90, trustDelta: 8 },
+                        scores: { empathy: 85, acknowledgement: 90, reassurance: 85, ownership: 85, technical: 95, safety: 95 },
+                        clarity: 90,
                         feedback: "Good recovery by acknowledging frustration and pivoting to correct troubleshooting.",
                         nextStep: 'step-3'
                     }
@@ -1005,13 +1025,15 @@ const SCENARIOS = [
                 choices: [
                     {
                         text: "Sure, go ahead and tell me your password so I can check your account.",
-                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0, clarity: 90, trustDelta: -50 },
+                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0 },
+                        clarity: 90,
                         feedback: "CRITICAL SAFETY VIOLATION. Never request passwords or authentication secrets.",
                         nextStep: 'end-fail'
                     },
                     {
                         text: "Never share your password with anyone—including support. I will guide you through entering it securely on your own device.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 100, safety: 100 },
+                        clarity: 95,
                         feedback: "Flawless safety compliance. Correctly protects authentication credentials and reinforces trust.",
                         nextStep: 'end-success'
                     }
@@ -1030,36 +1052,16 @@ const SCENARIOS = [
                 id: 'acc02-1',
                 prompt: "David is angry about a security alert and past support failures. How do you handle the opening?",
                 choices: [
-                    {
-                        text: "Check if the email was a phishing scam first.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 50, ownership: 50, technical: 80, safety: 90, clarity: 85, trustDelta: -10 },
-                        feedback: "Dismisses the customer's emotional urgency too quickly.",
-                        nextStep: 'acc02-2'
-                    },
-                    {
-                        text: "I completely understand why you're furious, especially after having a poor support experience previously. I'm taking ownership of your account security right now.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Masterclass in de-escalation, acknowledgement of past failure, and immediate ownership.",
-                        nextStep: 'acc02-2'
-                    }
+                    { text: "Check if the email was a phishing scam first.", scores: { empathy: 40, acknowledgement: 40, reassurance: 50, ownership: 50, technical: 80, safety: 90 }, clarity: 85, feedback: "Dismisses customer's emotional urgency too quickly.", nextStep: 'acc02-2' },
+                    { text: "I completely understand why you're furious, especially after having a poor support experience previously. I'm taking ownership of your account security right now.", scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100 }, clarity: 95, feedback: "Masterclass in de-escalation, acknowledgement of past failure, and immediate ownership.", nextStep: 'acc02-2' }
                 ]
             },
             {
                 id: 'acc02-2',
                 prompt: "David confirms he verified the email headers and it was a genuine notification. He asks what to do next.",
                 choices: [
-                    {
-                        text: "Let's immediately review your trusted devices, sign out of any unrecognized sessions, and update your account password.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Standard security best practice. Immediate session termination and password hardening.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Just ignore it, security blocks everything automatically.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 20, ownership: 10, technical: 0, safety: 0, clarity: 80, trustDelta: -30 },
-                        feedback: "Dangerous advice. Dismissing a confirmed security alert puts the user at severe risk.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's immediately review your trusted devices, sign out of any unrecognized sessions, and update your account password.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Standard security best practice. Immediate session termination and password hardening.", nextStep: 'end-success' },
+                    { text: "Just ignore it, security blocks everything automatically.", scores: { empathy: 10, acknowledgement: 10, reassurance: 20, ownership: 10, technical: 0, safety: 0 }, clarity: 80, feedback: "Dangerous advice. Dismissing a confirmed security alert puts the user at severe risk.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1075,36 +1077,16 @@ const SCENARIOS = [
                 id: 'acc03-1',
                 prompt: "Elena is confused about verification codes. How do you guide her?",
                 choices: [
-                    {
-                        text: "I can understand how confusing verification prompts can be when setting up a new device. Let's check a couple of quick settings together.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 90, technical: 90, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Very supportive and clear opening.",
-                        nextStep: 'acc03-2'
-                    },
-                    {
-                        text: "Just tap 'Didn't get a code' and select SMS.",
-                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 60, technical: 70, safety: 80, clarity: 85, trustDelta: 0 },
-                        feedback: "A bit rushed, but technically viable.",
-                        nextStep: 'acc03-2'
-                    }
+                    { text: "I can understand how confusing verification prompts can be when setting up a new device. Let's check a couple of quick settings together.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 90, technical: 90, safety: 100 }, clarity: 95, feedback: "Very supportive and clear opening.", nextStep: 'acc03-2' },
+                    { text: "Just tap 'Didn't get a code' and select SMS.", scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 60, technical: 70, safety: 80 }, clarity: 85, feedback: "A bit rushed, but technically viable.", nextStep: 'acc03-2' }
                 ]
             },
             {
                 id: 'acc03-2',
                 prompt: "Elena asks if she should read the verification code aloud over the call so you can type it for her.",
                 choices: [
-                    {
-                        text: "Please never share your verification code with anyone—even support. Enter it directly into your own device's prompt.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 100, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Flawless security protocol adherence.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Sure, go ahead and read it to me so I can log you in.",
-                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0, clarity: 85, trustDelta: -40 },
-                        feedback: "CRITICAL SAFETY VIOLATION. Verification codes must never be shared.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Please never share your verification code with anyone—even support. Enter it directly into your own device's prompt.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 100, technical: 100, safety: 100 }, clarity: 95, feedback: "Flawless security protocol adherence.", nextStep: 'end-success' },
+                    { text: "Sure, go ahead and read it to me so I can log you in.", scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0 }, clarity: 85, feedback: "CRITICAL SAFETY VIOLATION. Verification codes must never be shared.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1120,18 +1102,8 @@ const SCENARIOS = [
                 id: 'acc04-1',
                 prompt: "Gary forgot old security questions. How do you assist him?",
                 choices: [
-                    {
-                        text: "I can understand how tricky legacy security questions are to remember after all this time. Let's transition your account security to modern two-factor authentication.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Forward-looking security upgrade that permanently solves legacy security question issues.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Guess them until you get it right.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 20, clarity: 80, trustDelta: -40 },
-                        feedback: "Terrible advice that will result in account lockout.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "I can understand how tricky legacy security questions are to remember after all this time. Let's transition your account security to modern two-factor authentication.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Forward-looking security upgrade that permanently solves legacy security question issues.", nextStep: 'end-success' },
+                    { text: "Guess them until you get it right.", scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 20 }, clarity: 80, feedback: "Terrible advice that will result in account lockout.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1147,18 +1119,8 @@ const SCENARIOS = [
                 id: 'acc05-1',
                 prompt: "Clark lost his Advanced Data Protection Recovery Key. How do you address this high-stakes security situation?",
                 choices: [
-                    {
-                        text: "I understand how nerve-wracking that realization is with Advanced Data Protection active. Because Apple does not keep a copy of your recovery key for privacy reasons, let's check your trusted devices right now.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 22 },
-                        feedback: "Exemplary handling of an advanced security feature. Validates panic, explains zero-knowledge privacy accurately, and provides actionable multi-device recovery.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "If you lost your key, your account is gone forever. Good luck.",
-                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 20, safety: 40, clarity: 80, trustDelta: -60 },
-                        feedback: "Horrific support response. Panics the customer without checking secondary trusted devices.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "I understand how nerve-wracking that realization is with Advanced Data Protection active. Because Apple does not keep a copy of your recovery key for privacy reasons, let's check your trusted devices right now.", scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Exemplary handling of an advanced security feature. Validates panic, explains zero-knowledge privacy accurately, and provides actionable multi-device recovery.", nextStep: 'end-success' },
+                    { text: "If you lost your key, your account is gone forever. Good luck.", scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 20, safety: 40 }, clarity: 80, feedback: "Horrific support response. Panics the customer without checking secondary trusted devices.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1174,18 +1136,8 @@ const SCENARIOS = [
                 id: 'acc-06-1',
                 prompt: "Barry is frustrated by a passkey error. How do you troubleshoot?",
                 choices: [
-                    {
-                        text: "Let's check Bluetooth and iCloud Keychain status on both your phone and laptop, as cross-device passkeys require both to maintain continuity relay.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Accurate technical discovery for cross-device passkey relay requirements.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Delete all your passkeys and use regular passwords.",
-                        scores: { empathy: 20, acknowledgement: 20, reassurance: 20, ownership: 30, technical: 30, safety: 50, clarity: 80, trustDelta: -20 },
-                        feedback: "Regressive advice that discards modern security credentials unnecessarily.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's check Bluetooth and iCloud Keychain status on both your phone and laptop, as cross-device passkeys require both to maintain continuity relay.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Accurate technical discovery for cross-device passkey relay requirements.", nextStep: 'end-success' },
+                    { text: "Delete all your passkeys and use regular passwords.", scores: { empathy: 20, acknowledgement: 20, reassurance: 20, ownership: 30, technical: 30, safety: 50 }, clarity: 80, feedback: "Regressive advice that discards modern security credentials unnecessarily.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1201,18 +1153,8 @@ const SCENARIOS = [
                 id: 'acc-07-1',
                 prompt: "Martha wants to set up a Legacy Contact. How do you guide her?",
                 choices: [
-                    {
-                        text: "That is a very thoughtful planning step. Let's go to Settings, tap your name, tap Sign-In & Security, and select Legacy Contact to set that up securely.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Supportive, clear, and accurate feature navigation.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Just write your password down on a piece of paper for him.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 0, safety: 10, clarity: 85, trustDelta: -30 },
-                        feedback: "Insecure advice that compromises credential security.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "That is a very thoughtful planning step. Let's go to Settings, tap your name, tap Sign-In & Security, and select Legacy Contact to set that up securely.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Supportive, clear, and accurate feature navigation.", nextStep: 'end-success' },
+                    { text: "Just write your password down on a piece of paper for him.", scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 0, safety: 10 }, clarity: 85, feedback: "Insecure advice that compromises credential security.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1230,36 +1172,16 @@ const SCENARIOS = [
                 id: 'icl01-1',
                 prompt: "Marcus is stressed about family photos. How do you respond?",
                 choices: [
-                    {
-                        text: "I hear how stressful that is, especially when family memories are involved. Let's check your iCloud sync status together.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 90, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Wonderful empathy and immediate direction toward checking cloud sync status.",
-                        nextStep: 'icl01-2'
-                    },
-                    {
-                        text: "Did you back up your old phone before switching?",
-                        scores: { empathy: 40, acknowledgement: 30, reassurance: 40, ownership: 50, technical: 70, safety: 80, clarity: 85, trustDelta: -5 },
-                        feedback: "Interrogative opening. Puts the customer on the defensive.",
-                        nextStep: 'icl01-2'
-                    }
+                    { text: "I hear how stressful that is, especially when family memories are involved. Let's check your iCloud sync status together.", scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 90, safety: 100 }, clarity: 95, feedback: "Wonderful empathy and immediate direction toward checking cloud sync status.", nextStep: 'icl01-2' },
+                    { text: "Did you back up your old phone before switching?", scores: { empathy: 40, acknowledgement: 30, reassurance: 40, ownership: 50, technical: 70, safety: 80 }, clarity: 85, feedback: "Interrogative opening. Puts the customer on the defensive.", nextStep: 'icl01-2' }
                 ]
             },
             {
                 id: 'icl01-2',
                 prompt: "Marcus confirms Wi-Fi is connected, but the Photos app says 'Syncing 3,400 items... Paused on Low Battery.'",
                 choices: [
-                    {
-                        text: "You should erase the phone and restore from iCloud again.",
-                        scores: { empathy: 20, acknowledgement: 20, reassurance: 10, ownership: 30, technical: 10, safety: 40, clarity: 80, trustDelta: -25 },
-                        feedback: "Destructive and unnecessary recommendation. Erasing a device when sync is simply paused is terrible support.",
-                        nextStep: 'end-fail'
-                    },
-                    {
-                        text: "That explains it! iCloud pauses syncing when battery saver is active. Let's plug the phone into a charger to let the sync complete.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Perfect diagnosis. Identifies the exact blocker and provides clear action.",
-                        nextStep: 'end-success'
-                    }
+                    { text: "You should erase the phone and restore from iCloud again.", scores: { empathy: 20, acknowledgement: 20, reassurance: 10, ownership: 30, technical: 10, safety: 40 }, clarity: 80, feedback: "Destructive and unnecessary recommendation. Erasing a device when sync is simply paused is terrible support.", nextStep: 'end-fail' },
+                    { text: "That explains it! iCloud pauses syncing when battery saver is active. Let's plug the phone into a charger to let the sync complete.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Perfect diagnosis. Identifies the exact blocker and provides clear action.", nextStep: 'end-success' }
                 ]
             }
         ]
@@ -1275,36 +1197,16 @@ const SCENARIOS = [
                 id: 'icl02-1',
                 prompt: "Linda wants to understand what is consuming her iCloud space. How do you guide her?",
                 choices: [
-                    {
-                        text: "I can help you audit your storage breakdown. Let's go to Settings, tap your name, tap iCloud, and then tap 'Manage Account Storage' to see exact categories.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Clear navigation path and precise technical guidance.",
-                        nextStep: 'icl02-2'
-                    },
-                    {
-                        text: "You need to upgrade your iCloud storage plan immediately.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 90, clarity: 85, trustDelta: -10 },
-                        feedback: "Upselling before diagnosing what is actually filling the space is poor service.",
-                        nextStep: 'icl02-2'
-                    }
+                    { text: "I can help you audit your storage breakdown. Let's go to Settings, tap your name, tap iCloud, and then tap 'Manage Account Storage' to see exact categories.", scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 100, safety: 100 }, clarity: 95, feedback: "Clear navigation path and precise technical guidance.", nextStep: 'icl02-2' },
+                    { text: "You need to upgrade your iCloud storage plan immediately.", scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 90 }, clarity: 85, feedback: "Upselling before diagnosing what is actually filling the space is poor service.", nextStep: 'icl02-2' }
                 ]
             },
             {
                 id: 'icl02-2',
                 prompt: "Linda checks and sees Backups and Photos are taking up 195 GB of her 200 GB plan.",
                 choices: [
-                    {
-                        text: "That clarifies it. We can review old device backups or optimize photo storage to free up space without losing core files.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Constructive, tailored solutions respecting customer data.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Just delete all your photos.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 0, safety: 20, clarity: 80, trustDelta: -30 },
-                        feedback: "Reckless advice risking permanent loss of user memories.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "That clarifies it. We can review old device backups or optimize photo storage to free up space without losing core files.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Constructive, tailored solutions respecting customer data.", nextStep: 'end-success' },
+                    { text: "Just delete all your photos.", scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 0, safety: 20 }, clarity: 80, feedback: "Reckless advice risking permanent loss of user memories.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1320,36 +1222,16 @@ const SCENARIOS = [
                 id: 'icl03-1',
                 prompt: "Robert is impatient about contact syncing. How do you respond?",
                 choices: [
-                    {
-                        text: "I understand how inconvenient it is when contact sync lags behind, especially with client information. Let's check your account settings on both devices.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 90, ownership: 90, technical: 95, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Strong acknowledgement of professional inconvenience and targeted troubleshooting.",
-                        nextStep: 'icl03-2'
-                    },
-                    {
-                        text: "Re-type the contact manually on your iPhone.",
-                        scores: { empathy: 30, acknowledgement: 30, reassurance: 40, ownership: 40, technical: 40, safety: 90, clarity: 80, trustDelta: -10 },
-                        feedback: "Workaround instead of fixing the underlying sync issue.",
-                        nextStep: 'icl03-2'
-                    }
+                    { text: "I understand how inconvenient it is when contact sync lags behind, especially with client information. Let's check your account settings on both devices.", scores: { empathy: 95, acknowledgement: 95, reassurance: 90, ownership: 90, technical: 95, safety: 100 }, clarity: 95, feedback: "Strong acknowledgement of professional inconvenience and targeted troubleshooting.", nextStep: 'icl03-2' },
+                    { text: "Re-type the contact manually on your iPhone.", scores: { empathy: 30, acknowledgement: 30, reassurance: 40, ownership: 40, technical: 40, safety: 90 }, clarity: 80, feedback: "Workaround instead of fixing the underlying sync issue.", nextStep: 'icl03-2' }
                 ]
             },
             {
                 id: 'icl03-2',
                 prompt: "Robert confirms Contacts toggle is on, but his default account is set to a third-party email service instead of iCloud on his iPad.",
                 choices: [
-                    {
-                        text: "That explains why it stayed local to the iPad! Let's check your Default Account setting in Contacts so future entries sync seamlessly to iCloud.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Accurate root cause identification (default account mismatch).",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Turn off your phone and wait an hour.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 50, ownership: 50, technical: 40, safety: 90, clarity: 75, trustDelta: -5 },
-                        feedback: "Ineffective generic advice.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "That explains why it stayed local to the iPad! Let's check your Default Account setting in Contacts so future entries sync seamlessly to iCloud.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Accurate root cause identification (default account mismatch).", nextStep: 'end-success' },
+                    { text: "Turn off your phone and wait an hour.", scores: { empathy: 40, acknowledgement: 40, reassurance: 50, ownership: 50, technical: 40, safety: 90 }, clarity: 75, feedback: "Ineffective generic advice.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1365,18 +1247,8 @@ const SCENARIOS = [
                 id: 'icl04-1',
                 prompt: "Maya is panicking about vanished notes after signing out. How do you respond?",
                 choices: [
-                    {
-                        text: "I hear how frightening that sudden disappearance is. Don't worry—signing out temporarily removes local copies, but your notes are safely stored in iCloud. Let's sign back in.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Immediate calming reassurance coupled with accurate technical explanation of cloud caching.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "If you didn't back them up, they're probably deleted.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 50, clarity: 80, trustDelta: -40 },
-                        feedback: "Unnecessarily terrifying response that is technically incorrect for standard iCloud sync accounts.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "I hear how frightening that sudden disappearance is. Don't worry—signing out temporarily removes local copies, but your notes are safely stored in iCloud. Let's sign back in.", scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Immediate calming reassurance coupled with accurate technical explanation of cloud caching.", nextStep: 'end-success' },
+                    { text: "If you didn't back them up, they're probably deleted.", scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 50 }, clarity: 80, feedback: "Unnecessarily terrifying response that is technically incorrect for standard iCloud sync accounts.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1392,18 +1264,8 @@ const SCENARIOS = [
                 id: 'icl05-1',
                 prompt: "Lois's shared album isn't appearing for her sister. How do you troubleshoot?",
                 choices: [
-                    {
-                        text: "Let's check if the shared album invitation was successfully accepted by your sister, and verify that Shared Albums is enabled under your iCloud settings.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Clear, logical troubleshooting for shared album permissions.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Delete the album and recreate it.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 80, clarity: 85, trustDelta: -10 },
-                        feedback: "Unnecessary recreation instead of verifying invitation status.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's check if the shared album invitation was successfully accepted by your sister, and verify that Shared Albums is enabled under your iCloud settings.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100 }, clarity: 95, feedback: "Clear, logical troubleshooting for shared album permissions.", nextStep: 'end-success' },
+                    { text: "Delete the album and recreate it.", scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 80 }, clarity: 85, feedback: "Unnecessary recreation instead of verifying invitation status.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1419,18 +1281,8 @@ const SCENARIOS = [
                 id: 'icl-06-1',
                 prompt: "Stephen has a Time Machine checksum error. How do you approach this?",
                 choices: [
-                    {
-                        text: "Let's run Disk Utility First Aid on the backup volume to check directory structure integrity before initiating a new sparse bundle verification.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Correct technical procedure for diagnosing storage corruption safely.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Format the hard drive immediately.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 10, clarity: 80, trustDelta: -50 },
-                        feedback: "Destructive advice that destroys existing backup archives.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's run Disk Utility First Aid on the backup volume to check directory structure integrity before initiating a new sparse bundle verification.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Correct technical procedure for diagnosing storage corruption safely.", nextStep: 'end-success' },
+                    { text: "Format the hard drive immediately.", scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 10 }, clarity: 80, feedback: "Destructive advice that destroys existing backup archives.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1448,36 +1300,16 @@ const SCENARIOS = [
                 id: 'hdw01-1',
                 prompt: "Kevin needs his phone for work and is frustrated by rapid battery drain. How do you respond?",
                 choices: [
-                    {
-                        text: "Batteries degrade over time. You need a new phone.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 30, safety: 50, clarity: 80, trustDelta: -30 },
-                        feedback: "Premature and dismissive. Fails to consider background re-indexing after updates.",
-                        nextStep: 'hdw01-2'
-                    },
-                    {
-                        text: "I understand how critical reliable battery life is for your workday. Let's check your Battery Health and usage statistics.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 18 },
-                        feedback: "Strong acknowledgement of professional impact and precise troubleshooting direction.",
-                        nextStep: 'hdw01-2'
-                    }
+                    { text: "Batteries degrade over time. You need a new phone.", scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 30, safety: 50 }, clarity: 80, feedback: "Premature and dismissive. Fails to consider background re-indexing after updates.", nextStep: 'hdw01-2' },
+                    { text: "I understand how critical reliable battery life is for your workday. Let's check your Battery Health and usage statistics.", scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100 }, clarity: 95, feedback: "Strong acknowledgement of professional impact and precise troubleshooting direction.", nextStep: 'hdw01-2' }
                 ]
             },
             {
                 id: 'hdw01-2',
                 prompt: "Kevin checks battery stats and sees Photos and Spotlight indexing consuming 70% of background activity following the recent update.",
                 choices: [
-                    {
-                        text: "Major updates trigger temporary background re-indexing for 24-48 hours. Keeping it plugged in overnight will let this background process finish smoothly.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 100, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Exemplary technical explanation. Educates customer on normal post-update indexing behavior.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Turn off all notifications and delete half your apps.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 70, clarity: 85, trustDelta: -15 },
-                        feedback: "Overly aggressive troubleshooting that disrupts user experience unnecessarily.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Major updates trigger temporary background re-indexing for 24-48 hours. Keeping it plugged in overnight will let this background process finish smoothly.", scores: { empathy: 95, acknowledgement: 95, reassurance: 100, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Exemplary technical explanation. Educates customer on normal post-update indexing behavior.", nextStep: 'end-success' },
+                    { text: "Turn off all notifications and delete half your apps.", scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 70 }, clarity: 85, feedback: "Overly aggressive troubleshooting that disrupts user experience unnecessarily.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1493,36 +1325,16 @@ const SCENARIOS = [
                 id: 'hdw02-1',
                 prompt: "Amanda is anxious about overheating and fire risk. How do you handle her safety concern?",
                 choices: [
-                    {
-                        text: "I completely understand why getting unusually hot is alarming. Let's unplug the device immediately to let it cool down safely.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 100, safety: 100, clarity: 95, trustDelta: 25 },
-                        feedback: "Exemplary safety prioritization. Immediate cessation of charging, de-escalation, and calm reassurance.",
-                        nextStep: 'hdw02-2'
-                    },
-                    {
-                        text: "Phones get warm when fast charging, just keep using it.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 10, clarity: 80, trustDelta: -40 },
-                        feedback: "Dangerous disregard for user safety and thermal warnings.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "I completely understand why getting unusually hot is alarming. Let's unplug the device immediately to let it cool down safely.", scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 100, safety: 100 }, clarity: 95, feedback: "Exemplary safety prioritization. Immediate cessation of charging, de-escalation, and calm reassurance.", nextStep: 'hdw02-2' },
+                    { text: "Phones get warm when fast charging, just keep using it.", scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 10 }, clarity: 80, feedback: "Dangerous disregard for user safety and thermal warnings.", nextStep: 'end-fail' }
                 ]
             },
             {
                 id: 'hdw02-2',
                 prompt: "Amanda unplugged the phone. She mentions she was using a third-party uncertified gas-station charging brick.",
                 choices: [
-                    {
-                        text: "That uncertified charging brick is likely delivering unregulated wattage. We strongly recommend using MFi-certified power adapters.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Accurate root cause identification and vital safety education.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Your battery is dead, buy a new phone.",
-                        scores: { empathy: 30, acknowledgement: 30, reassurance: 30, ownership: 30, technical: 40, safety: 50, clarity: 80, trustDelta: -10 },
-                        feedback: "Inaccurate diagnosis ignoring the uncertified charger variable.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "That uncertified charging brick is likely delivering unregulated wattage. We strongly recommend using MFi-certified power adapters.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Accurate root cause identification and vital safety education.", nextStep: 'end-success' },
+                    { text: "Your battery is dead, buy a new phone.", scores: { empathy: 30, acknowledgement: 30, reassurance: 30, ownership: 30, technical: 40, safety: 50 }, clarity: 80, feedback: "Inaccurate diagnosis ignoring the uncertified charger variable.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1538,36 +1350,16 @@ const SCENARIOS = [
                 id: 'hdw03-1',
                 prompt: "Tom's phone is frozen on the logo. How do you respond?",
                 choices: [
-                    {
-                        text: "I understand how frustrating it is when a device freezes mid-boot. Let's perform a forced restart sequence together.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Solid acknowledgement and clear action plan.",
-                        nextStep: 'hdw03-2'
-                    },
-                    {
-                        text: "Leave it alone until the battery dies.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 40, safety: 70, clarity: 80, trustDelta: -5 },
-                        feedback: "Passive workaround rather than active guidance.",
-                        nextStep: 'hdw03-2'
-                    }
+                    { text: "I understand how frustrating it is when a device freezes mid-boot. Let's perform a forced restart sequence together.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 95, safety: 100 }, clarity: 95, feedback: "Solid acknowledgement and clear action plan.", nextStep: 'hdw03-2' },
+                    { text: "Leave it alone until the battery dies.", scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 40, safety: 70 }, clarity: 80, feedback: "Passive workaround rather than active guidance.", nextStep: 'hdw03-2' }
                 ]
             },
             {
                 id: 'hdw03-2',
                 prompt: "Tom asks if performing a forced restart will wipe his personal photos and messages.",
                 choices: [
-                    {
-                        text: "No, a forced restart simply interrupts and reboots the software memory cycle. It does not touch or erase your personal data.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 100, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Directly addresses data security anxiety accurately.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "There's always a chance everything gets erased.",
-                        scores: { empathy: 30, acknowledgement: 30, reassurance: 20, ownership: 40, technical: 60, safety: 80, clarity: 85, trustDelta: -15 },
-                        feedback: "Unnecessarily panics customer about data loss.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "No, a forced restart simply interrupts and reboots the software memory cycle. It does not touch or erase your personal data.", scores: { empathy: 95, acknowledgement: 95, reassurance: 100, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Directly addresses data security anxiety accurately.", nextStep: 'end-success' },
+                    { text: "There's always a chance everything gets erased.", scores: { empathy: 30, acknowledgement: 30, reassurance: 20, ownership: 40, technical: 60, safety: 80 }, clarity: 85, feedback: "Unnecessarily panics customer about data loss.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1583,18 +1375,8 @@ const SCENARIOS = [
                 id: 'hdw04-1',
                 prompt: "Diana's microphone sounds muffled on regular calls but works on speaker. How do you diagnose?",
                 choices: [
-                    {
-                        text: "Since speakerphone uses a top/front microphone while regular calls use the bottom primary microphone, let's check the bottom grille for debris.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Brilliant hardware logic (differentiating bottom primary mic from top mic).",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Your cellular carrier is dropping your audio packets.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 40, safety: 80, clarity: 85, trustDelta: -10 },
-                        feedback: "Incorrect hardware-vs-carrier assumption.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Since speakerphone uses a top/front microphone while regular calls use the bottom primary microphone, let's check the bottom grille for debris.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Brilliant hardware logic (differentiating bottom primary mic from top mic).", nextStep: 'end-success' },
+                    { text: "Your cellular carrier is dropping your audio packets.", scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 40, safety: 80 }, clarity: 85, feedback: "Incorrect hardware-vs-carrier assumption.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1610,18 +1392,8 @@ const SCENARIOS = [
                 id: 'hdw05-1',
                 prompt: "Wanda has a localized dead zone on her touch screen. How do you troubleshoot?",
                 choices: [
-                    {
-                        text: "Let's check if you have a thick tempered glass screen protector or case lip pressing against that corner, as physical interference is common.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 18 },
-                        feedback: "Excellent elimination of external hardware interference before suspecting digitizer failure.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Your screen is broken, you need to pay for a replacement immediately.",
-                        scores: { empathy: 20, acknowledgement: 20, reassurance: 20, ownership: 30, technical: 40, safety: 60, clarity: 85, trustDelta: -20 },
-                        feedback: "Jumps to expensive repair without ruling out screen protector interference.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's check if you have a thick tempered glass screen protector or case lip pressing against that corner, as physical interference is common.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Excellent elimination of external hardware interference before suspecting digitizer failure.", nextStep: 'end-success' },
+                    { text: "Your screen is broken, you need to pay for a replacement immediately.", scores: { empathy: 20, acknowledgement: 20, reassurance: 20, ownership: 30, technical: 40, safety: 60 }, clarity: 85, feedback: "Jumps to expensive repair without ruling out screen protector interference.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1637,18 +1409,8 @@ const SCENARIOS = [
                 id: 'hdw-06-1',
                 prompt: "Bruce has a kernel panic log pointing to power management. How do you analyze?",
                 choices: [
-                    {
-                        text: "Let's review the panic report headers to determine if a third-party kext or failing peripheral is waking the SMC improperly.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Advanced technical log analysis suited for technically confident users.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Reinstall the operating system from scratch.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 80, clarity: 85, trustDelta: -10 },
-                        feedback: "Too drastic before analyzing kernel panic log parameters.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's review the panic report headers to determine if a third-party kext or failing peripheral is waking the SMC improperly.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Advanced technical log analysis suited for technically confident users.", nextStep: 'end-success' },
+                    { text: "Reinstall the operating system from scratch.", scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 80 }, clarity: 85, feedback: "Too drastic before analyzing kernel panic log parameters.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1666,36 +1428,16 @@ const SCENARIOS = [
                 id: 'eco01-1',
                 prompt: "Chloe is annoyed by automatic device switching. How do you respond?",
                 choices: [
-                    {
-                        text: "Turn off Bluetooth on your Mac.",
-                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 70, safety: 90, clarity: 80, trustDelta: -5 },
-                        feedback: "Drastic workaround that disables Mac Bluetooth entirely.",
-                        nextStep: 'eco01-2'
-                    },
-                    {
-                        text: "I can completely understand how disruptive automatic switching can be when trying to focus. Let's adjust your AirPods connection settings.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Great empathy and targeted solution for automatic switching behavior.",
-                        nextStep: 'eco01-2'
-                    }
+                    { text: "Turn off Bluetooth on your Mac.", scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 70, safety: 90 }, clarity: 80, feedback: "Drastic workaround that disables Mac Bluetooth entirely.", nextStep: 'eco01-2' },
+                    { text: "I can completely understand how disruptive automatic switching can be when trying to focus. Let's adjust your AirPods connection settings.", scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100 }, clarity: 95, feedback: "Great empathy and targeted solution for automatic switching behavior.", nextStep: 'eco01-2' }
                 ]
             },
             {
                 id: 'eco01-2',
                 prompt: "Chloe asks where to change the automatic connection setting.",
                 choices: [
-                    {
-                        text: "With your AirPods connected, go to Bluetooth settings on your iPhone, tap 'i' next to your AirPods, and change 'Connect to This iPhone' to 'When Last Connected'.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Precise step-by-step feature guidance.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Unpair and forget your AirPods forever.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 10, safety: 50, clarity: 80, trustDelta: -30 },
-                        feedback: "Unnecessary resetting when a simple preference toggle resolves it.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "With your AirPods connected, go to Bluetooth settings on your iPhone, tap 'i' next to your AirPods, and change 'Connect to This iPhone' to 'When Last Connected'.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Precise step-by-step feature guidance.", nextStep: 'end-success' },
+                    { text: "Unpair and forget your AirPods forever.", scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 10, safety: 50 }, clarity: 80, feedback: "Unnecessary resetting when a simple preference toggle resolves it.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1711,36 +1453,16 @@ const SCENARIOS = [
                 id: 'eco02-1',
                 prompt: "Mark wants his fitness rings syncing properly. How do you guide him?",
                 choices: [
-                    {
-                        text: "I understand how fun it is to keep activity sharing in sync. Let's check your Fitness sharing profile and network connection status.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Supportive and friendly tone.",
-                        nextStep: 'eco02-2'
-                    },
-                    {
-                        text: "Restart both watches and phones immediately.",
-                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 60, safety: 90, clarity: 85, trustDelta: -5 },
-                        feedback: "Generic troubleshooting without checking account connection.",
-                        nextStep: 'eco02-2'
-                    }
+                    { text: "I understand how fun it is to keep activity sharing in sync. Let's check your Fitness sharing profile and network connection status.", scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 100 }, clarity: 95, feedback: "Supportive and friendly tone.", nextStep: 'eco02-2' },
+                    { text: "Restart both watches and phones immediately.", scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 60, safety: 90 }, clarity: 85, feedback: "Generic troubleshooting without checking account connection.", nextStep: 'eco02-2' }
                 ]
             },
             {
                 id: 'eco02-2',
                 prompt: "You determine that the iCloud account pairing between fitness profiles needs a refresh.",
                 choices: [
-                    {
-                        text: "Let's tap your friend's name in the Fitness app, remove the invite, and send a fresh invite to re-establish the encrypted sync handshake.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Effective fix for stalled activity sharing connections.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Factory reset your Apple Watch.",
-                        scores: { empathy: 20, acknowledgement: 20, reassurance: 10, ownership: 20, technical: 10, safety: 50, clarity: 80, trustDelta: -25 },
-                        feedback: "Disproportionate and destructive troubleshooting.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's tap your friend's name in the Fitness app, remove the invite, and send a fresh invite to re-establish the encrypted sync handshake.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Effective fix for stalled activity sharing connections.", nextStep: 'end-success' },
+                    { text: "Factory reset your Apple Watch.", scores: { empathy: 20, acknowledgement: 20, reassurance: 10, ownership: 20, technical: 10, safety: 50 }, clarity: 80, feedback: "Disproportionate and destructive troubleshooting.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1756,36 +1478,16 @@ const SCENARIOS = [
                 id: 'eco03-1',
                 prompt: "Natalie is technical and already checked basics. How do you approach troubleshooting?",
                 choices: [
-                    {
-                        text: "Since you've already verified Wi-Fi, Bluetooth, and Handoff settings, let's test toggling Handoff off and back on on both devices to refresh the iCloud relay token.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Respects customer technical knowledge and offers advanced relay token refresh.",
-                        nextStep: 'eco03-2'
-                    },
-                    {
-                        text: "Make sure Wi-Fi is turned on.",
-                        scores: { empathy: 40, acknowledgement: 30, reassurance: 40, ownership: 40, technical: 30, safety: 90, clarity: 80, trustDelta: -10 },
-                        feedback: "Ignores customer's prior statement that Wi-Fi is already on.",
-                        nextStep: 'eco03-2'
-                    }
+                    { text: "Since you've already verified Wi-Fi, Bluetooth, and Handoff settings, let's test toggling Handoff off and back on on both devices to refresh the iCloud relay token.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Respects customer technical knowledge and offers advanced relay token refresh.", nextStep: 'eco03-2' },
+                    { text: "Make sure Wi-Fi is turned on.", scores: { empathy: 40, acknowledgement: 30, reassurance: 40, ownership: 40, technical: 30, safety: 90 }, clarity: 80, feedback: "Ignores customer's prior statement that Wi-Fi is already on.", nextStep: 'eco03-2' }
                 ]
             },
             {
                 id: 'eco03-2',
                 prompt: "Toggling Handoff didn't immediately fix clipboard relay. What is the next logical step?",
                 choices: [
-                    {
-                        text: "Let's sign out of your Apple Account in System Settings on the Mac and sign back in to refresh continuity certificate credentials.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Accurate advanced troubleshooting for continuity token corruption.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Reinstall macOS.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 30, clarity: 80, trustDelta: -40 },
-                        feedback: "Extremely excessive for a clipboard sync glitch.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's sign out of your Apple Account in System Settings on the Mac and sign back in to refresh continuity certificate credentials.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Accurate advanced troubleshooting for continuity token corruption.", nextStep: 'end-success' },
+                    { text: "Reinstall macOS.", scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 30 }, clarity: 80, feedback: "Extremely excessive for a clipboard sync glitch.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1801,18 +1503,8 @@ const SCENARIOS = [
                 id: 'eco04-1',
                 prompt: "Bruce is getting false AirTag separation alerts. How do you troubleshoot?",
                 choices: [
-                    {
-                        text: "Let's check your 'Notify When Left Behind' location boundaries and verify if a specific Safe Location needs updating.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Clear location-boundary troubleshooting.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Replace the AirTag battery immediately.",
-                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 60, safety: 80, clarity: 85, trustDelta: -5 },
-                        feedback: "Premature hardware replacement advice.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's check your 'Notify When Left Behind' location boundaries and verify if a specific Safe Location needs updating.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100 }, clarity: 95, feedback: "Clear location-boundary troubleshooting.", nextStep: 'end-success' },
+                    { text: "Replace the AirTag battery immediately.", scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 60, safety: 80 }, clarity: 85, feedback: "Premature hardware replacement advice.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1828,18 +1520,8 @@ const SCENARIOS = [
                 id: 'eco-05-1',
                 prompt: "Hal has no data abroad despite roaming being on. How do you troubleshoot?",
                 choices: [
-                    {
-                        text: "Let's check your APN carrier settings and toggle Airplane mode for 10 seconds to force your phone to re-handshake with local partner towers.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 18 },
-                        feedback: "Effective network handshake refresh for international roaming.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Buy a new physical SIM card.",
-                        scores: { empathy: 30, acknowledgement: 30, reassurance: 30, ownership: 30, technical: 30, safety: 70, clarity: 85, trustDelta: -15 },
-                        feedback: "Unnecessary step before trying network reset or carrier toggle.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's check your APN carrier settings and toggle Airplane mode for 10 seconds to force your phone to re-handshake with local partner towers.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Effective network handshake refresh for international roaming.", nextStep: 'end-success' },
+                    { text: "Buy a new physical SIM card.", scores: { empathy: 30, acknowledgement: 30, reassurance: 30, ownership: 30, technical: 30, safety: 70 }, clarity: 85, feedback: "Unnecessary step before trying network reset or carrier toggle.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1855,18 +1537,8 @@ const SCENARIOS = [
                 id: 'eco-06-1',
                 prompt: "Arthur's AirDrop discovery is failing. How do you guide him?",
                 choices: [
-                    {
-                        text: "Let's check Control Center on both devices to ensure Wi-Fi and Bluetooth are active, and AirDrop visibility is set to 'Everyone for 10 Minutes' or 'Contacts Only'.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
-                        feedback: "Directly addresses Wi-Fi/Bluetooth prerequisites and visibility settings.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Email the files instead.",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 20, safety: 90, clarity: 80, trustDelta: -10 },
-                        feedback: "Workaround instead of troubleshooting AirDrop connectivity.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "Let's check Control Center on both devices to ensure Wi-Fi and Bluetooth are active, and AirDrop visibility is set to 'Everyone for 10 Minutes' or 'Contacts Only'.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100 }, clarity: 95, feedback: "Directly addresses Wi-Fi/Bluetooth prerequisites and visibility settings.", nextStep: 'end-success' },
+                    { text: "Email the files instead.", scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 20, safety: 90 }, clarity: 80, feedback: "Workaround instead of troubleshooting AirDrop connectivity.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1884,18 +1556,8 @@ const SCENARIOS = [
                 id: 'esc01-1',
                 prompt: "Gordon is screaming and threatening legal action. How do you de-escalate?",
                 choices: [
-                    {
-                        text: "If you're going to threaten legal action, I'm disconnecting this call.",
-                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 10, technical: 0, safety: 20, clarity: 80, trustDelta: -50 },
-                        feedback: "Provocative and escalates hostility immediately. Terrible support behavior.",
-                        nextStep: 'end-fail'
-                    },
-                    {
-                        text: "I hear how angry and upset you are about your experience. Let me summarize your case notes so I can connect you smoothly to our specialist team.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100, clarity: 95, trustDelta: 25 },
-                        feedback: "Masterclass in de-escalation. Acknowledges anger without being defensive, takes ownership, and manages escalation professionally.",
-                        nextStep: 'end-success'
-                    }
+                    { text: "If you're going to threaten legal action, I'm disconnecting this call.", scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 10, technical: 0, safety: 20 }, clarity: 80, feedback: "Provocative and escalates hostility immediately. Terrible support behavior.", nextStep: 'end-fail' },
+                    { text: "I hear how angry and upset you are about your experience. Let me summarize your case notes so I can connect you smoothly to our specialist team.", scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100 }, clarity: 95, feedback: "Masterclass in de-escalation. Acknowledges anger without being defensive, takes ownership, and manages escalation professionally.", nextStep: 'end-success' }
                 ]
             }
         ]
@@ -1911,18 +1573,8 @@ const SCENARIOS = [
                 id: 'esc02-1',
                 prompt: "Evelyn refuses troubleshooting and demands a replacement. How do you respond?",
                 choices: [
-                    {
-                        text: "I completely understand why you want a swift solution without tedious testing. Because replacements require verified diagnostic codes per service standards, let's run a quick 2-minute remote diagnostic together.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 95, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Brilliant framing. Aligns troubleshooting as the fast track to getting her what she wants rather than an arbitrary hurdle.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Policy requires you to do what I say or I can't help.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 40, clarity: 80, trustDelta: -40 },
-                        feedback: "Robotic rule-citing that alienates the customer.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "I completely understand why you want a swift solution without tedious testing. Because replacements require verified diagnostic codes per service standards, let's run a quick 2-minute remote diagnostic together.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 95, safety: 100 }, clarity: 95, feedback: "Brilliant framing. Aligns troubleshooting as the fast track to getting her what she wants rather than an arbitrary hurdle.", nextStep: 'end-success' },
+                    { text: "Policy requires you to do what I say or I can't help.", scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 40 }, clarity: 80, feedback: "Robotic rule-citing that alienates the customer.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1938,18 +1590,8 @@ const SCENARIOS = [
                 id: 'esc03-1',
                 prompt: "Arthur is exhausted from calling four times. How do you handle this high-friction moment?",
                 choices: [
-                    {
-                        text: "I am so sorry you've had to call four times without a resolution. That is incredibly frustrating. I am taking personal ownership of your case right now to review previous ticket history.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 95, safety: 100, clarity: 95, trustDelta: 25 },
-                        feedback: "Exemplary ownership and sincere apology for repeat contact fatigue.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Which department did you speak to last time?",
-                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 50, safety: 80, clarity: 85, trustDelta: -10 },
-                        feedback: "Shifts burden of explanation back onto the frustrated customer.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "I am so sorry you've had to call four times without a resolution. That is incredibly frustrating. I am taking personal ownership of your case right now to review previous ticket history.", scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 95, safety: 100 }, clarity: 95, feedback: "Exemplary ownership and sincere apology for repeat contact fatigue.", nextStep: 'end-success' },
+                    { text: "Which department did you speak to last time?", scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 50, safety: 80 }, clarity: 85, feedback: "Shifts burden of explanation back onto the frustrated customer.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1965,18 +1607,8 @@ const SCENARIOS = [
                 id: 'esc04-1',
                 prompt: "Tony demands free out-of-warranty physical damage repair based on loyalty. How do you handle policy and empathy?",
                 choices: [
-                    {
-                        text: "I completely understand your frustration with accidental damage costs, especially as a longtime customer. While standard warranty covers manufacturing defects rather than accidental drops, let's review your AppleCare+ coverage options.",
-                        scores: { empathy: 95, acknowledgement: 100, reassurance: 90, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Professional balance of empathy for repair costs, clear policy boundaries regarding accidental damage, and helpful service options.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "You broke it, you pay for it. Policy is policy.",
-                        scores: { empathy: 0, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 50, safety: 70, clarity: 80, trustDelta: -40 },
-                        feedback: "Blunt and abrasive. Alienates customer.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "I completely understand your frustration with accidental damage costs, especially as a longtime customer. While standard warranty covers manufacturing defects rather than accidental drops, let's review your AppleCare+ coverage options.", scores: { empathy: 95, acknowledgement: 100, reassurance: 90, ownership: 95, technical: 95, safety: 100 }, clarity: 95, feedback: "Professional balance of empathy for repair costs, clear policy boundaries regarding accidental damage, and helpful service options.", nextStep: 'end-success' },
+                    { text: "You broke it, you pay for it. Policy is policy.", scores: { empathy: 0, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 50, safety: 70 }, clarity: 80, feedback: "Blunt and abrasive. Alienates customer.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -1992,18 +1624,8 @@ const SCENARIOS = [
                 id: 'esc-05-1',
                 prompt: "Lex demands a 100% guarantee on data recovery for a dead device. How do you respond?",
                 choices: [
-                    {
-                        text: "I understand how invaluable your business data is. While our technicians will make every diagnostic effort to preserve data integrity, hardware failures prevent us from offering a 100% absolute guarantee.",
-                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 18 },
-                        feedback: "Honest, realistic expectation setting without making unsupported guarantees.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "We guarantee 100% data recovery, don't worry about it.",
-                        scores: { empathy: 80, acknowledgement: 80, reassurance: 90, ownership: 80, technical: 0, safety: 0, clarity: 85, trustDelta: -30 },
-                        feedback: "Unsupported promise violation. Never guarantee data recovery on dead hardware.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "I understand how invaluable your business data is. While our technicians will make every diagnostic effort to preserve data integrity, hardware failures prevent us from offering a 100% absolute guarantee.", scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100 }, clarity: 95, feedback: "Honest, realistic expectation setting without making unsupported guarantees.", nextStep: 'end-success' },
+                    { text: "We guarantee 100% data recovery, don't worry about it.", scores: { empathy: 80, acknowledgement: 80, reassurance: 90, ownership: 80, technical: 0, safety: 0 }, clarity: 85, feedback: "Unsupported promise violation. Never guarantee data recovery on dead hardware.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -2019,18 +1641,8 @@ const SCENARIOS = [
                 id: 'esc-06-1',
                 prompt: "Selina threatens a bank chargeback and fraud claims over a disputed charge. How do you handle this?",
                 choices: [
-                    {
-                        text: "I hear how upset you are about this charge. Let's look at the transaction details together so I can submit an official refund review request for you right now.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 20 },
-                        feedback: "Calm de-escalation offering immediate formal review pathway instead of arguing.",
-                        nextStep: 'end-success'
-                    },
-                    {
-                        text: "Go ahead and file a chargeback, we'll just ban your account.",
-                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 10, clarity: 80, trustDelta: -60 },
-                        feedback: "Combative and inflammatory response that destroys customer trust.",
-                        nextStep: 'end-fail'
-                    }
+                    { text: "I hear how upset you are about this charge. Let's look at the transaction details together so I can submit an official refund review request for you right now.", scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 95, safety: 100 }, clarity: 95, feedback: "Calm de-escalation offering immediate formal review pathway instead of arguing.", nextStep: 'end-success' },
+                    { text: "Go ahead and file a chargeback, we'll just ban your account.", scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 10 }, clarity: 80, feedback: "Combative and inflammatory response that destroys customer trust.", nextStep: 'end-fail' }
                 ]
             }
         ]
@@ -2060,65 +1672,322 @@ function shuffleArray(array) {
 }
 
 /* ==========================================================================
-   DEVELOPER QA AUDIT ENGINE
+   PHASE 1: UPGRADED DEVELOPER QA ENGINE
    ========================================================================== */
-function runDeveloperQAReport() {
+function runDeveloperQAReport(customScenarios = null, customPhrase = null, customPersonalities = null) {
+    const scenarios = customScenarios || SCENARIOS;
+    const phraseExercises = customPhrase || PHRASE_MEMORY_EXERCISES;
+    const personalities = customPersonalities || CUSTOMER_PERSONALITIES;
+
     const report = {
-        totalScenarios: SCENARIOS.length,
-        difficultyCounts: { Easy: 0, Medium: 0, Hard: 0 },
-        categoryCounts: {},
+        criticalErrors: [],
         warnings: [],
-        structuralErrors: [],
-        phraseMemoryChecks: PHRASE_MEMORY_EXERCISES.length
+        informational: {
+            totalScenarios: scenarios.length,
+            difficultyCounts: { Easy: 0, Medium: 0, Hard: 0 },
+            categoryCounts: {},
+            phraseMemoryCount: phraseExercises.length,
+            totalChoicesInspected: 0,
+            completeScoringChoices: 0,
+            missingScoringChoices: 0,
+            personalityCount: personalities.length,
+            answerPositionStats: {
+                scenarios: { pos1: 0, pos2: 0, pos3: 0, other: 0, total: 0 },
+                phraseMemory: { pos1: 0, pos2: 0, pos3: 0, other: 0, total: 0 }
+            }
+        }
     };
 
-    const ids = new Set();
-
-    SCENARIOS.forEach(s => {
-        if (ids.has(s.id)) {
-            report.structuralErrors.push(`Duplicate scenario ID: ${s.id}`);
-        }
-        ids.add(s.id);
-
-        if (report.difficultyCounts[s.difficulty] !== undefined) {
-            report.difficultyCounts[s.difficulty]++;
+    // 1. Scenario Integrity
+    const scenarioIds = new Set();
+    scenarios.forEach((s, sIdx) => {
+        if (!s.id) {
+            report.criticalErrors.push(`Scenario [index ${sIdx}] is missing an ID.`);
+        } else if (scenarioIds.has(s.id)) {
+            report.criticalErrors.push(`Duplicate scenario ID found: "${s.id}".`);
         } else {
-            report.difficultyCounts[s.difficulty] = 1;
+            scenarioIds.add(s.id);
         }
 
-        report.categoryCounts[s.category] = (report.categoryCounts[s.category] || 0) + 1;
+        if (!s.title || typeof s.title !== 'string' || s.title.trim() === '') {
+            report.criticalErrors.push(`Scenario "${s.id || sIdx}" is missing a title.`);
+        }
 
-        if (!s.steps || s.steps.length === 0) {
-            report.structuralErrors.push(`Scenario ${s.id} has no steps.`);
+        if (!s.category) {
+            report.criticalErrors.push(`Scenario "${s.id || sIdx}" is missing a category.`);
         } else {
-            const stepIds = new Set(s.steps.map(st => st.id));
-            s.steps.forEach(st => {
-                if (!st.prompt) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id} missing prompt.`);
-                if (!st.choices || st.choices.length === 0) {
-                    report.structuralErrors.push(`Scenario ${s.id}, step ${st.id} missing choices.`);
+            report.informational.categoryCounts[s.category] = (report.informational.categoryCounts[s.category] || 0) + 1;
+        }
+
+        if (!s.difficulty) {
+            report.criticalErrors.push(`Scenario "${s.id || sIdx}" is missing a difficulty level.`);
+        } else if (report.informational.difficultyCounts[s.difficulty] !== undefined) {
+            report.informational.difficultyCounts[s.difficulty]++;
+        } else {
+            report.warnings.push(`Scenario "${s.id}" has non-standard difficulty: "${s.difficulty}".`);
+        }
+
+        if (!s.steps || !Array.isArray(s.steps) || s.steps.length === 0) {
+            report.criticalErrors.push(`Scenario "${s.id}" has no steps defined.`);
+            return;
+        }
+
+        const stepIds = new Set();
+        const validStepIdSet = new Set(s.steps.map(st => st.id));
+        validStepIdSet.add('end-success');
+        validStepIdSet.add('end-fail');
+
+        s.steps.forEach((st, stIdx) => {
+            if (!st.id) {
+                report.criticalErrors.push(`Scenario "${s.id}", step index ${stIdx} is missing a step ID.`);
+            } else if (stepIds.has(st.id)) {
+                report.criticalErrors.push(`Scenario "${s.id}" has duplicate step ID: "${st.id}".`);
+            } else {
+                stepIds.add(st.id);
+            }
+
+            if (!st.prompt || typeof st.prompt !== 'string' || st.prompt.trim() === '') {
+                report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id || stIdx}" is missing a step prompt.`);
+            }
+
+            const isTerminal = st.id === 'end-success' || st.id === 'end-fail' || (st.choices && st.choices.length === 0);
+
+            if (!isTerminal) {
+                if (!st.choices || !Array.isArray(st.choices) || st.choices.length === 0) {
+                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}" requires choice arrays but has none.`);
                 } else {
+                    let maxScoreInStep = -1;
+                    let bestChoicePos = 0;
+
                     st.choices.forEach((c, cIdx) => {
-                        if (!c.text) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing text.`);
-                        if (!c.nextStep) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing nextStep.`);
-                        else if (c.nextStep !== 'end-success' && c.nextStep !== 'end-fail' && !stepIds.has(c.nextStep)) {
-                            report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} points to invalid nextStep: ${c.nextStep}`);
+                        report.informational.totalChoicesInspected++;
+                        let hasCompleteScores = true;
+
+                        if (!c.text || typeof c.text !== 'string' || c.text.trim() === '') {
+                            report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing choice text.`);
                         }
-                        if (!c.scores) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing scoring dimensions.`);
-                        if (c.clarity === undefined) report.warnings.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing clarity score.`);
+
+                        if (!c.feedback || typeof c.feedback !== 'string' || c.feedback.trim() === '') {
+                            report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing feedback.`);
+                        }
+
+                        if (!c.scores || typeof c.scores !== 'object') {
+                            report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing the scoring object.`);
+                            hasCompleteScores = false;
+                        } else {
+                            const dims = ['empathy', 'acknowledgement', 'reassurance', 'ownership', 'technical', 'safety'];
+                            dims.forEach(dim => {
+                                if (c.scores[dim] === undefined || typeof c.scores[dim] !== 'number') {
+                                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing scoring dimension: "${dim}".`);
+                                    hasCompleteScores = false;
+                                }
+                            });
+                        }
+
+                        if (c.clarity === undefined || typeof c.clarity !== 'number') {
+                            report.warnings.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} has missing or invalid clarity value.`);
+                        }
+
+                        if (hasCompleteScores) {
+                            report.informational.completeScoringChoices++;
+                        } else {
+                            report.informational.missingScoringChoices++;
+                        }
+
+                        const choiceScoreSum = (c.scores?.empathy || 0) + (c.scores?.technical || 0) + (c.scores?.safety || 0);
+                        if (choiceScoreSum > maxScoreInStep) {
+                            maxScoreInStep = choiceScoreSum;
+                            bestChoicePos = cIdx + 1;
+                        }
+
+                        if (!c.nextStep) {
+                            report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing nextStep destination.`);
+                        } else if (!validStepIdSet.has(c.nextStep)) {
+                            report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} points to invalid nextStep destination: "${c.nextStep}".`);
+                        }
                     });
 
-                    const lengths = st.choices.map(c => c.text.length);
-                    const max = Math.max(...lengths);
-                    const min = Math.min(...lengths);
-                    if (max > min * 2.8) {
-                        report.warnings.push(`Scenario ${s.id}, step ${st.id}: Length variance warning (Max: ${max}, Min: ${min}).`);
+                    report.informational.answerPositionStats.scenarios.total++;
+                    if (bestChoicePos === 1) report.informational.answerPositionStats.scenarios.pos1++;
+                    else if (bestChoicePos === 2) report.informational.answerPositionStats.scenarios.pos2++;
+                    else if (bestChoicePos === 3) report.informational.answerPositionStats.scenarios.pos3++;
+                    else report.informational.answerPositionStats.scenarios.other++;
+
+                    const lengths = st.choices.map(c => c.text ? c.text.length : 0);
+                    const maxLen = Math.max(...lengths);
+                    const minLen = Math.min(...lengths);
+                    if (minLen > 0 && maxLen > minLen * 2.8) {
+                        report.warnings.push(`Scenario "${s.id}", Step "${st.id}": Answer length imbalance (Max: ${maxLen}, Min: ${minLen}).`);
                     }
                 }
+            }
+        });
+    });
+
+    // 2. Phrase Memory Integrity
+    const pmIds = new Set();
+    phraseExercises.forEach((ex, exIdx) => {
+        if (!ex.id) {
+            report.criticalErrors.push(`Phrase Memory exercise index ${exIdx} is missing an ID.`);
+        } else if (pmIds.has(ex.id)) {
+            report.criticalErrors.push(`Duplicate Phrase Memory ID found: "${ex.id}".`);
+        } else {
+            pmIds.add(ex.id);
+        }
+
+        if (!ex.prompt || typeof ex.prompt !== 'string' || ex.prompt.trim() === '') {
+            report.criticalErrors.push(`Phrase Memory exercise "${ex.id || exIdx}" is missing a prompt.`);
+        }
+
+        if (!ex.choices || !Array.isArray(ex.choices) || ex.choices.length === 0) {
+            report.criticalErrors.push(`Phrase Memory exercise "${ex.id || exIdx}" has missing or empty choice array.`);
+        } else {
+            let optimalPos = 0;
+            let foundOptimal = false;
+
+            ex.choices.forEach((c, cIdx) => {
+                if (!c.text || typeof c.text !== 'string' || c.text.trim() === '') {
+                    report.criticalErrors.push(`Phrase Memory "${ex.id}", Choice ${cIdx} is missing text.`);
+                }
+                if (!c.feedback || typeof c.feedback !== 'string' || c.feedback.trim() === '') {
+                    report.criticalErrors.push(`Phrase Memory "${ex.id}", Choice ${cIdx} is missing feedback.`);
+                }
+                if (c.score === undefined || typeof c.score !== 'number') {
+                    report.criticalErrors.push(`Phrase Memory "${ex.id}", Choice ${cIdx} is missing score value.`);
+                } else if (c.score >= 100 && !foundOptimal) {
+                    optimalPos = cIdx + 1;
+                    foundOptimal = true;
+                }
             });
+
+            report.informational.answerPositionStats.phraseMemory.total++;
+            if (optimalPos === 1) report.informational.answerPositionStats.phraseMemory.pos1++;
+            else if (optimalPos === 2) report.informational.answerPositionStats.phraseMemory.pos2++;
+            else if (optimalPos === 3) report.informational.answerPositionStats.phraseMemory.pos3++;
+            else report.informational.answerPositionStats.phraseMemory.other++;
+        }
+    });
+
+    const scnTotal = report.informational.answerPositionStats.scenarios.total;
+    if (scnTotal > 0) {
+        const p1Ratio = report.informational.answerPositionStats.scenarios.pos1 / scnTotal;
+        if (p1Ratio > 0.6) {
+            report.warnings.push(`Positional Imbalance Warning: ${Math.round(p1Ratio * 100)}% of scenario optimal choices are in Position 1.`);
+        }
+    }
+
+    // 3. Customer Personality Integrity
+    const expectedPersonalities = ['impatient', 'anxious', 'skeptical', 'angry', 'confused', 'cooperative'];
+    const foundPersonalityIds = new Set();
+
+    personalities.forEach((p, pIdx) => {
+        if (!p.id) {
+            report.criticalErrors.push(`Personality index ${pIdx} is missing an ID.`);
+        } else {
+            foundPersonalityIds.add(p.id);
+        }
+
+        if (!p.name || typeof p.name !== 'string') {
+            report.criticalErrors.push(`Personality "${p.id || pIdx}" is missing a display name.`);
+        }
+
+        if (typeof p.modifierFn !== 'function') {
+            report.criticalErrors.push(`Personality "${p.id}" is missing a valid modifierFn function.`);
+        } else {
+            try {
+                const testChoice = { text: "Short test text", scores: { empathy: 90, technical: 95, safety: 100, ownership: 95, reassurance: 90 } };
+                const result = p.modifierFn(testChoice, 70);
+                if (!result || typeof result !== 'object' || typeof result.trustDelta !== 'number' || typeof result.note !== 'string') {
+                    report.warnings.push(`Personality "${p.id}" modifierFn returned malformed result structure.`);
+                }
+            } catch (e) {
+                report.criticalErrors.push(`Personality "${p.id}" modifierFn threw an error during test evaluation: ${e.message}`);
+            }
+        }
+    });
+
+    expectedPersonalities.forEach(expId => {
+        if (!foundPersonalityIds.has(expId)) {
+            report.criticalErrors.push(`Expected customer personality "${expId}" is missing from CUSTOMER_PERSONALITIES.`);
         }
     });
 
     return report;
+}
+
+/* ==========================================================================
+   AUTOMATED DEFECT-INJECTION TEST RUNNER
+   ========================================================================== */
+function runQADefectInjectionTests() {
+    const results = [];
+
+    // 1. Duplicate Scenario ID
+    try {
+        const dupScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        dupScenarios[1].id = dupScenarios[0].id; // duplicate ID
+        const rep = runDeveloperQAReport(dupScenarios, null, null);
+        const caught = rep.criticalErrors.some(err => err.includes('Duplicate scenario ID'));
+        results.push({ test: 'Duplicate Scenario ID', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Duplicate Scenario ID', passed: false, error: e.message });
+    }
+
+    // 2. Missing Choice Feedback Field
+    try {
+        const missingFeedbackScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        delete missingFeedbackScenarios[0].steps[0].choices[0].feedback;
+        const rep = runDeveloperQAReport(missingFeedbackScenarios, null, null);
+        const caught = rep.criticalErrors.some(err => err.includes('missing feedback'));
+        results.push({ test: 'Missing Choice Feedback', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Missing Choice Feedback', passed: false, error: e.message });
+    }
+
+    // 3. Missing Scoring Dimension
+    try {
+        const missingDimScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        delete missingDimScenarios[0].steps[0].choices[0].scores.empathy;
+        const rep = runDeveloperQAReport(missingDimScenarios, null, null);
+        const caught = rep.criticalErrors.some(err => err.includes('missing scoring dimension: "empathy"'));
+        results.push({ test: 'Missing Scoring Dimension', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Missing Scoring Dimension', passed: false, error: e.message });
+    }
+
+    // 4. Invalid Branch Destination
+    try {
+        const invalidBranchScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        invalidBranchScenarios[0].steps[0].choices[0].nextStep = 'nonexistent-step-id';
+        const rep = runDeveloperQAReport(invalidBranchScenarios, null, null);
+        const caught = rep.criticalErrors.some(err => err.includes('points to invalid nextStep destination'));
+        results.push({ test: 'Invalid Branch Destination', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Invalid Branch Destination', passed: false, error: e.message });
+    }
+
+    // 5. Phrase Memory Exercise with No Choices
+    try {
+        const emptyPm = JSON.parse(JSON.stringify(PHRASE_MEMORY_EXERCISES));
+        emptyPm[0].choices = [];
+        const rep = runDeveloperQAReport(null, emptyPm, null);
+        const caught = rep.criticalErrors.some(err => err.includes('missing or empty choice array'));
+        results.push({ test: 'Phrase Memory Empty Choice Array', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Phrase Memory Empty Choice Array', passed: false, error: e.message });
+    }
+
+    // 6. Personality Without Valid Modifier Function
+    try {
+        const badPers = JSON.parse(JSON.stringify(CUSTOMER_PERSONALITIES));
+        badPers[0].modifierFn = 'not-a-function';
+        const rep = runDeveloperQAReport(null, null, badPers);
+        const caught = rep.criticalErrors.some(err => err.includes('missing a valid modifierFn function'));
+        results.push({ test: 'Personality Without Valid Modifier', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Personality Without Valid Modifier', passed: false, error: e.message });
+    }
+
+    return results;
 }
 
 /* ==========================================================================
@@ -2191,6 +2060,7 @@ function updateLevelTitle() {
    ========================================================================== */
 const app = {
     currentView: 'dashboard',
+    defectTestResults: null,
 
     init() {
         loadGameState();
@@ -2207,6 +2077,11 @@ const app = {
             qaPanelVisible = !qaPanelVisible;
             this.navigateTo(this.currentView);
         }
+    },
+
+    runDefectTestsFromUI() {
+        this.defectTestResults = runQADefectInjectionTests();
+        this.navigateTo(this.currentView);
     },
 
     navigateTo(viewName, param) {
@@ -2346,13 +2221,34 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Hidden) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
-                    • Total Authored Scenarios: <strong>${qaReport.totalScenarios}</strong><br>
-                    • Structural Errors: <strong style="color: ${qaReport.structuralErrors.length === 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${qaReport.structuralErrors.length === 0 ? 'None (Passed)' : qaReport.structuralErrors.length}</strong><br>
-                    • Length Warnings: ${qaReport.warnings.length}<br>
-                    • Difficulty Distribution: Easy (${qaReport.difficultyCounts.Easy}), Med (${qaReport.difficultyCounts.Medium}), Hard (${qaReport.difficultyCounts.Hard})<br>
-                    • Phrase Memory Exercises: ${qaReport.phraseMemoryChecks} items validated.<br>
-                    • Personality Integration: Active (6 profiles with dynamic modifiers).
+                    <h3>🛠️ Developer QA Audit Panel (Phase 1 Upgraded) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    
+                    <div class="qa-section-title">1. Informational Metrics</div>
+                    <div class="qa-list">
+                        • Total Scenarios: <strong>${qaReport.informational.totalScenarios}</strong><br>
+                        • Difficulty Distribution: Easy (${qaReport.informational.difficultyCounts.Easy}), Med (${qaReport.informational.difficultyCounts.Medium}), Hard (${qaReport.informational.difficultyCounts.Hard})<br>
+                        • Phrase Memory Exercises: <strong>${qaReport.informational.phraseMemoryCount}</strong><br>
+                        • Total Choices Inspected: <strong>${qaReport.informational.totalChoicesInspected}</strong><br>
+                        • Scoring Integrity: ${qaReport.informational.completeScoringChoices} complete / ${qaReport.informational.missingScoringChoices} missing<br>
+                        • Customer Personalities: <strong>${qaReport.informational.personalityCount}</strong> loaded<br>
+                        • Answer Position (Scenarios): Pos 1 (${qaReport.informational.answerPositionStats.scenarios.pos1}), Pos 2 (${qaReport.informational.answerPositionStats.scenarios.pos2}), Pos 3 (${qaReport.informational.answerPositionStats.scenarios.pos3})
+                    </div>
+
+                    <div class="qa-section-title" style="color: var(--accent-rose);">2. Critical Errors (${qaReport.criticalErrors.length})</div>
+                    <div class="qa-list">
+                        ${qaReport.criticalErrors.length === 0 ? '<span style="color: var(--accent-emerald);">None detected (Passed)</span>' : qaReport.criticalErrors.map(e => `• ${e}`).join('<br>')}
+                    </div>
+
+                    <div class="qa-section-title" style="color: var(--accent-amber);">3. Warnings (${qaReport.warnings.length})</div>
+                    <div class="qa-list">
+                        ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
+                    </div>
+
+                    <div class="qa-section-title">4. Defect-Injection Verification Suite</div>
+                    <div class="qa-list">
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Defect Tests</button>
+                        ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'CAUGHT (PASS)' : 'FAILED'}</strong></div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
+                    </div>
                 </div>
             ` : ''}
         `;
@@ -2436,7 +2332,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE (Dynamic Personalities & Randomized Choices)
+       CALL SIMULATOR ENGINE
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
@@ -2637,7 +2533,7 @@ const app = {
     },
 
     /* ==========================================================================
-       FINISH CALL & RESULTS (7-Dimension Scoring)
+       FINISH CALL & RESULTS
        ========================================================================== */
     finishCall() {
         if (currentSession.callCompleted) return;
@@ -2788,7 +2684,7 @@ const app = {
     },
 
     /* ==========================================================================
-       PHRASE MEMORY MODULE (Randomized Choices & Feedback)
+       PHRASE MEMORY MODULE
        ========================================================================== */
     renderPhraseMemoryHTML() {
         return `
