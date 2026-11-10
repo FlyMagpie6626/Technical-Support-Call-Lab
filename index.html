@@ -1,0 +1,2950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TSCL 2.2 — Technical Support Call Lab</title>
+    <style>
+        /* ==========================================================================
+           TSCL 2.2 LOCAL STYLING (Zero External Dependencies, Mobile Optimized)
+           ========================================================================== */
+        :root {
+            --bg-primary: #090d16;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1f2937;
+            --bg-card: rgba(17, 24, 39, 0.9);
+            --border-color: rgba(75, 85, 99, 0.4);
+            --border-hover: rgba(99, 102, 241, 0.6);
+            
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --text-dim: #6b7280;
+            
+            --accent-indigo: #6366f1;
+            --accent-indigo-hover: #4f46e5;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-cyan: #06b6d4;
+            
+            --shadow-subtle: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.25s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: radial-gradient(circle at top, #1e1b4b 0%, var(--bg-primary) 60%);
+            padding-bottom: 40px;
+        }
+
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .gap-1 { gap: 4px; }
+        .gap-2 { gap: 8px; }
+        .gap-3 { gap: 12px; }
+        .gap-4 { gap: 16px; }
+        .w-full { width: 100%; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .text-lg { font-size: 1.125rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+
+        header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(9, 13, 22, 0.88);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+            user-select: none;
+        }
+
+        .brand-title h1 {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .brand-title p {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .header-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stat-pill {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-pill span { color: var(--accent-amber); }
+
+        main {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-card);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition-fast);
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-indigo), #4338ca);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+            background: var(--accent-indigo-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:active {
+            background: #374151;
+            transform: scale(0.98);
+        }
+
+        .dashboard-hero {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.1));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-hero h2 {
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+            background: linear-gradient(to right, #ffffff, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dashboard-hero p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+        }
+
+        .level-badge {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-amber);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            border-radius: var(--radius-md);
+            text-align: left;
+        }
+
+        .stat-card .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .stat-card .value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .menu-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .menu-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            text-align: left;
+        }
+
+        .menu-btn:active {
+            border-color: var(--accent-indigo);
+            background: var(--bg-tertiary);
+            transform: scale(0.98);
+        }
+
+        .menu-btn-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .menu-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent-indigo);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .call-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .customer-meta {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .customer-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .customer-mood {
+            font-size: 0.75rem;
+            color: var(--accent-amber);
+        }
+
+        .trust-meter-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            width: 100px;
+        }
+
+        .trust-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .trust-bar-fill {
+            height: 100%;
+            background: var(--accent-emerald);
+            transition: width 0.3s ease;
+        }
+
+        .chat-stream {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            max-height: 340px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .chat-bubble {
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            font-size: 0.92rem;
+            max-width: 90%;
+            line-height: 1.45;
+            position: relative;
+        }
+
+        .chat-bubble.customer {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+            color: var(--text-main);
+        }
+
+        .chat-bubble.advisor {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(6, 182, 212, 0.15));
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+            color: var(--text-main);
+        }
+
+        .chat-bubble .speaker-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+
+        .choices-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .choice-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            text-align: left;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .choice-btn:active {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-indigo);
+            transform: scale(0.99);
+        }
+
+        .choice-btn .choice-prefix {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent-indigo);
+            text-transform: uppercase;
+        }
+
+        .coaching-box {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-top: 10px;
+        }
+
+        .coaching-box.bad {
+            background: rgba(244, 63, 94, 0.1);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+
+        .coaching-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .coaching-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .results-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .score-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            text-align: center;
+        }
+
+        .score-box .s-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .score-box .s-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        .feedback-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+        }
+
+        .feedback-section h4 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            margin-bottom: 12px;
+        }
+
+        .filter-chip {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .filter-chip.active {
+            background: var(--accent-indigo);
+            color: #fff;
+            border-color: var(--accent-indigo);
+        }
+
+        .scenario-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 450px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .scenario-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .scenario-item:active {
+            border-color: var(--accent-indigo);
+            background: var(--bg-tertiary);
+        }
+
+        .scenario-info h5 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .scenario-info p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .phrase-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .leaderboard-table th, .leaderboard-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .leaderboard-table th {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .qa-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-amber);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-top: 20px;
+            font-size: 0.8rem;
+        }
+
+        .qa-panel h3 {
+            color: var(--accent-amber);
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .disclaimer {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-align: center;
+            padding: 10px 20px;
+            line-height: 1.4;
+        }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="app">
+    <header>
+        <div class="brand" onclick="app.handleLogoClick()">
+            <div class="brand-logo" title="Click 5 times for Developer QA Panel">TS</div>
+            <div class="brand-title">
+                <h1>TSCL 2.2</h1>
+                <p>Call Lab</p>
+            </div>
+        </div>
+        <div class="header-stats">
+            <div class="stat-pill" title="Total XP">⚡ <span id="header-xp">0</span></div>
+            <div class="stat-pill" title="Current Streak">🔥 <span id="header-streak">0</span></div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <!-- Injected via JavaScript -->
+    </main>
+
+    <div class="disclaimer">
+        TSCL is an independent training simulator. Always follow your employer’s current policies, approved tools, escalation procedures, and official support documentation when handling real customers.
+    </div>
+</div>
+
+<script>
+/* ==========================================================================
+   TSCL 2.2 CORE APPLICATION ENGINE
+   (Foundation: TSCL 2.1 | Enhanced with Answer Randomization, Dynamic Personalities,
+   Clarity Scoring, and Hidden Developer QA Panel)
+   ========================================================================== */
+
+const STORAGE_KEYS = {
+    profile: 'tscl_v2_profile',
+    history: 'tscl_v2_history',
+    leaderboard: 'tscl_v2_leaderboard',
+    phraseMemory: 'tscl_v2_phrase_memory',
+    settings: 'tscl_v2_settings'
+};
+
+let gameState = {
+    xp: 0,
+    streak: 0,
+    levelTitle: 'Trainee Advisor',
+    completedScenarios: {},
+    phraseMemoryCompleted: {},
+    recentScenarios: [],
+    leaderboard: []
+};
+
+let currentSession = {
+    mode: 'guided',
+    scenario: null,
+    currentStepIndex: 0,
+    trustStore: 70,
+    callHistory: [],
+    decisionLog: [],
+    scores: {
+        empathy: 0,
+        acknowledgement: 0,
+        reassurance: 0,
+        ownership: 0,
+        technical: 0,
+        safety: 0,
+        clarity: 0
+    },
+    totalChoicesMade: 0,
+    callCompleted: false,
+    selectedPersonality: null,
+    shuffledChoicesMap: {},
+    stateFlags: {}
+};
+
+let logoClickCount = 0;
+let logoClickTimer = null;
+let qaPanelVisible = false;
+
+/* ==========================================================================
+   DYNAMIC CUSTOMER PERSONALITIES (Behavioral Modifiers & Dialogue Reactions)
+   ========================================================================== */
+const CUSTOMER_PERSONALITIES = [
+    {
+        id: 'impatient',
+        name: 'Impatient / Direct',
+        moodMod: -15,
+        prefixNote: 'Wanting a fast resolution without unnecessary conversational filler.',
+        modifierFn: (choice, trust) => {
+            if (choice.text.length < 85 && choice.scores.technical > 80) return { trustDelta: 6, note: 'Appreciated the direct, efficient approach.' };
+            if (choice.text.length > 140) return { trustDelta: -10, note: 'Grew impatient with the lengthy phrasing.' };
+            return { trustDelta: 0, note: '' };
+        }
+    },
+    {
+        id: 'anxious',
+        name: 'Anxious / Worried',
+        moodMod: -10,
+        prefixNote: 'Sounding noticeably worried about data loss, security, or account safety.',
+        modifierFn: (choice, trust) => {
+            if (choice.scores.reassurance >= 90) return { trustDelta: 8, note: 'Calmed significantly by the reassuring guidance.' };
+            if (choice.scores.reassurance < 60) return { trustDelta: -12, note: 'Remained anxious due to insufficient reassurance.' };
+            return { trustDelta: 0, note: '' };
+        }
+    },
+    {
+        id: 'skeptical',
+        name: 'Skeptical / Analytical',
+        moodMod: -5,
+        prefixNote: 'Questioning technical recommendations and demanding evidence.',
+        modifierFn: (choice, trust) => {
+            if (choice.scores.technical >= 95) return { trustDelta: 10, note: 'Respected the solid technical explanation.' };
+            if (choice.scores.technical < 70) return { trustDelta: -10, note: 'Doubted the vague technical recommendation.' };
+            return { trustDelta: 0, note: '' };
+        }
+    },
+    {
+        id: 'angry',
+        name: 'Frustrated / Angry',
+        moodMod: -20,
+        prefixNote: 'Mentioning previous failed support attempts and high irritation.',
+        modifierFn: (choice, trust) => {
+            if (choice.scores.ownership >= 95 && choice.scores.acknowledgement >= 90) return { trustDelta: 12, note: 'De-escalated after feeling heard and taking personal ownership.' };
+            if (choice.scores.ownership < 60) return { trustDelta: -15, note: 'Grew angrier at the lack of ownership and defensive tone.' };
+            return { trustDelta: 0, note: '' };
+        }
+    },
+    {
+        id: 'confused',
+        name: 'Confused / Hesitant',
+        moodMod: -5,
+        prefixNote: 'Struggling to follow complex jargon and requiring simple steps.',
+        modifierFn: (choice, trust) => {
+            if (choice.scores.clarity >= 90 && choice.text.length < 130) return { trustDelta: 8, note: 'Found the clear, step-by-step instructions easy to follow.' };
+            if (choice.scores.clarity < 60) return { trustDelta: -8, note: 'Confused by the overly complex phrasing.' };
+            return { trustDelta: 0, note: '' };
+        }
+    },
+    {
+        id: 'cooperative',
+        name: 'Calm & Cooperative',
+        moodMod: 10,
+        prefixNote: 'Speaking in a steady, collaborative tone.',
+        modifierFn: (choice, trust) => {
+            if (choice.scores.empathy >= 80) return { trustDelta: 5, note: 'Responded warmly to the supportive tone.' };
+            return { trustDelta: 0, note: '' };
+        }
+    }
+];
+
+/* ==========================================================================
+   PHRASE MEMORY EXERCISES (Balanced Lengths & Randomized Positions)
+   ========================================================================== */
+const PHRASE_MEMORY_EXERCISES = [
+    {
+        id: 'pm-01',
+        category: 'Acknowledgement',
+        customerStatement: "I've been trying to sign in for an hour and nothing is working!",
+        prompt: "Select the most effective response demonstrating strong acknowledgement:",
+        choices: [
+            { text: "I understand you've been locked out for an hour. Let's fix this right now.", score: 100, clarity: 95, feedback: "Directly acknowledges the specific duration and frustration without fluff." },
+            { text: "Okay, let's reset your password right now.", score: 40, clarity: 80, feedback: "Skips acknowledging the customer's wasted hour and frustration." },
+            { text: "I'm sorry you are having issues.", score: 60, clarity: 70, feedback: "Generic apology. Lacks specific acknowledgement of what happened." }
+        ]
+    },
+    {
+        id: 'pm-02',
+        category: 'Empathy',
+        customerStatement: "All my vacation photos disappeared and they aren't backed up anywhere else!",
+        prompt: "Choose the best empathetic response:",
+        choices: [
+            { text: "Well, did you check your Recently Deleted album?", score: 50, clarity: 75, feedback: "Technically relevant discovery, but emotionally dismissive of someone panicking over lost memories." },
+            { text: "I can imagine how stressful it is to realize your vacation photos are missing. Let's look into this together.", score: 100, clarity: 90, feedback: "Validates the emotional stress while taking collaborative ownership." },
+            { text: "Don't worry, it's probably just a sync glitch.", score: 70, clarity: 80, feedback: "Reassuring, but minimizes the customer's genuine emotional stress prematurely." }
+        ]
+    },
+    {
+        id: 'pm-03',
+        category: 'Reassurance',
+        customerStatement: "Is my bank account compromised because I got a weird pop-up?",
+        prompt: "Select the most professional reassurance:",
+        choices: [
+            { text: "Let's check your security settings together right now so we can verify what's happening.", score: 100, clarity: 90, feedback: "Calming, structured, and action-oriented reassurance." },
+            { text: "Yes, definitely. Your phone is hacked.", score: 0, clarity: 90, feedback: "Unsafe and alarmist. Never cause panic without verification." },
+            { text: "Probably not, pop-ups are usually fake.", score: 40, clarity: 70, feedback: "Too casual and dismissive of valid security concerns." }
+        ]
+    },
+    {
+        id: 'pm-04',
+        category: 'Ownership',
+        customerStatement: "The last three advisors I spoke with told me different things and nobody fixed it.",
+        prompt: "Choose the response that demonstrates strong ownership:",
+        choices: [
+            { text: "That's not my fault, but let me see what I can do.", score: 30, clarity: 70, feedback: "Defensive and shifts blame away from the company." },
+            { text: "Let me transfer you to my supervisor.", score: 50, clarity: 80, feedback: "Premature escalation without attempting discovery or showing ownership." },
+            { text: "I apologize for the conflicting info. I'm taking ownership of your case now to sort this out.", score: 100, clarity: 95, feedback: "Rebuilds trust immediately by taking personal responsibility for the customer's journey." }
+        ]
+    },
+    {
+        id: 'pm-05',
+        category: 'Discovery',
+        customerStatement: "My battery drains completely in two hours ever since the update yesterday.",
+        prompt: "Select the best discovery question:",
+        choices: [
+            { text: "Have you tried restarting your phone?", score: 60, clarity: 85, feedback: "A standard step, but asks before checking what battery usage stats show." },
+            { text: "Let's check Battery settings to see which apps consumed the most power since yesterday.", score: 100, clarity: 95, feedback: "Precise discovery targeting root cause analysis before blindly suggesting generic troubleshooting." },
+            { text: "You should probably buy a replacement battery.", score: 0, clarity: 80, feedback: "Premature and inaccurate recommendation following a software update." }
+        ]
+    },
+    {
+        id: 'pm-06',
+        category: 'Clarification',
+        customerStatement: "My screen is acting ghosty and tapping things by itself.",
+        prompt: "Choose the best clarification approach:",
+        choices: [
+            { text: "Does this happen while the device is plugged into a charger, or regardless of power source?", score: 100, clarity: 95, feedback: "Spot-on technical clarification distinguishing electrical grounding interference from digitizer failure." },
+            { text: "Just clean your screen with a cloth.", score: 40, clarity: 80, feedback: "Oversimplified dismissal of potential hardware or power interference." },
+            { text: "You need a screen replacement.", score: 20, clarity: 85, feedback: "Jumps straight to a hardware repair diagnosis without clarifying conditions." }
+        ]
+    },
+    {
+        id: 'pm-07',
+        category: 'Professional Communication',
+        customerStatement: "Why do I need two-factor authentication? It's just annoying.",
+        prompt: "Select the best way to explain the concept simply:",
+        choices: [
+            { text: "Because cybersecurity rules require it.", score: 50, clarity: 70, feedback: "Bureaucratic and unconvincing." },
+            { text: "Think of it like a deadbolt on your front door in addition to the doorknob lock—even if someone guesses your password, they still can't enter without that second key.", score: 100, clarity: 95, feedback: "Clear, relatable analogy that explains security value without sounding patronizing." },
+            { text: "If you don't use it, your account will get hacked immediately.", score: 20, clarity: 80, feedback: "Alarmist and overly dramatic." }
+        ]
+    },
+    {
+        id: 'pm-08',
+        category: 'De-escalation',
+        customerStatement: "I don't have time for this troubleshooting! I have a flight in two hours!",
+        prompt: "Select the most effective de-escalation response:",
+        choices: [
+            { text: "Calm down, we have to follow these steps.", score: 0, clarity: 75, feedback: "Telling an upset customer to calm down invariably escalates tension." },
+            { text: "I hear how urgent this is with your flight coming up. Let's focus strictly on what's critical before you leave.", score: 100, clarity: 95, feedback: "Exceptional time-awareness, empathy, and flexible adjustment to customer urgency." },
+            { text: "If you don't have time, call back later.", score: 0, clarity: 80, feedback: "Completely unacceptable customer service." }
+        ]
+    },
+    {
+        id: 'pm-09',
+        category: 'Safety Language',
+        customerStatement: "Can you log into my account for me right now?",
+        prompt: "Choose the safest and most professional response:",
+        choices: [
+            { text: "Sure, give me your password and I'll log in.", score: 0, clarity: 80, feedback: "Severe security violation. Never request credentials." },
+            { text: "I cannot access your account directly for security reasons. Let's walk through the steps together on your device.", score: 100, clarity: 95, feedback: "Clear security boundary combined with collaborative guidance." },
+            { text: "I'm not allowed to do that.", score: 40, clarity: 70, feedback: "A bit robotic. Fails to offer the collaborative alternative immediately." }
+        ]
+    },
+    {
+        id: 'pm-10',
+        category: 'Reassurance',
+        customerStatement: "Will I lose my photos if I sign out of my account to fix this sync bug?",
+        prompt: "Select the correct reassurance:",
+        choices: [
+            { text: "Let's verify first that your photos are fully synced to iCloud. Once confirmed, signing out is completely safe.", score: 100, clarity: 95, feedback: "Safe, verified reassurance. Never guesses about data safety." },
+            { text: "No, nothing bad will happen.", score: 50, clarity: 80, feedback: "Too casual. Account sign-outs can prompt sync warnings if data isn't fully local." },
+            { text: "Probably not, but do it at your own risk.", score: 10, clarity: 70, feedback: "Fails to provide safe guidance." }
+        ]
+    }
+];
+
+/* ==========================================================================
+   CANONICAL SCENARIO LIBRARY (31 Fully Authored Scenarios across 5 Categories)
+   ========================================================================== */
+const SCENARIOS = [
+    // --- CATEGORY 1: Apple Account & Security (Scenarios 1-7) ---
+    {
+        id: 'acc-01',
+        title: 'Apple Account Sign-In Loop',
+        category: 'Apple Account & Security',
+        difficulty: 'Medium',
+        customer: { name: 'Sarah Jenkins', opening: "Hi... I'm locked out of my Apple Account because it keeps looping back to the password screen every time I enter my verification code, and I'm honestly panicking because my work documents are tied to it." },
+        steps: [
+            {
+                id: 'step-1',
+                prompt: "Sarah is anxious and worried about her work documents. How do you respond?",
+                choices: [
+                    {
+                        text: "Try restarting your phone and enter the password again.",
+                        scores: { empathy: 30, acknowledgement: 20, reassurance: 40, ownership: 40, technical: 50, safety: 70, clarity: 85, trustDelta: -10 },
+                        feedback: "Too abrupt. Skips empathy and gives generic advice without investigating the loop.",
+                        nextStep: 'step-2b'
+                    },
+                    {
+                        text: "I understand how stressful it is to be locked out when your work documents are dependent on your account. Let's work through this step by step to restore access.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 80, safety: 90, clarity: 95, trustDelta: 15 },
+                        feedback: "Excellent empathy and reassurance. Validates work anxiety and establishes collaborative ownership.",
+                        nextStep: 'step-2a'
+                    },
+                    {
+                        text: "Don't worry, your work documents are totally safe. What verification method are you using?",
+                        scores: { empathy: 70, acknowledgement: 60, reassurance: 80, ownership: 70, technical: 75, safety: 85, clarity: 90, trustDelta: 5 },
+                        feedback: "Good reassurance, though a bit quick to guarantee data safety before diagnosing the loop.",
+                        nextStep: 'step-2a'
+                    }
+                ]
+            },
+            {
+                id: 'step-2a',
+                prompt: "Sarah confirms she is receiving the code on her trusted iPad, but entering it triggers a 'Verification Failed - Server Connection' error.",
+                choices: [
+                    {
+                        text: "Let's check if your device's date and time are set to 'Set Automatically', as time synchronization discrepancies frequently cause server verification loops.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 12 },
+                        feedback: "Outstanding technical reasoning. Date/time sync is a primary root cause for SSL/verification loops.",
+                        nextStep: 'step-3'
+                    },
+                    {
+                        text: "Your internet must be bad. Switch to cellular data.",
+                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 60, safety: 70, clarity: 80, trustDelta: -5 },
+                        feedback: "Blames connection without verification. Too dismissive.",
+                        nextStep: 'step-3'
+                    },
+                    {
+                        text: "Let's reset your network settings right now.",
+                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 70, technical: 70, safety: 65, clarity: 85, trustDelta: -2 },
+                        feedback: "A bit aggressive as a second step before checking basic time sync parameters.",
+                        nextStep: 'step-3'
+                    }
+                ]
+            },
+            {
+                id: 'step-2b',
+                prompt: "Sarah tried restarting, but the loop persists. She sounds increasingly frustrated.",
+                choices: [
+                    {
+                        text: "Let's reset your network settings.",
+                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 70, technical: 70, safety: 65, clarity: 85, trustDelta: -2 },
+                        feedback: "A bit aggressive before checking basic time sync or connectivity parameters.",
+                        nextStep: 'step-3'
+                    },
+                    {
+                        text: "I hear your frustration since the restart didn't resolve it. Let's check your date and time settings next.",
+                        scores: { empathy: 85, acknowledgement: 90, reassurance: 85, ownership: 85, technical: 95, safety: 95, clarity: 90, trustDelta: 8 },
+                        feedback: "Good recovery by acknowledging frustration and pivoting to correct troubleshooting.",
+                        nextStep: 'step-3'
+                    }
+                ]
+            },
+            {
+                id: 'step-3',
+                prompt: "Sarah verifies date and time are correct. She asks: 'Should I give you my password so you can fix it on your end?'",
+                choices: [
+                    {
+                        text: "Sure, go ahead and tell me your password so I can check your account.",
+                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0, clarity: 90, trustDelta: -50 },
+                        feedback: "CRITICAL SAFETY VIOLATION. Never request passwords or authentication secrets.",
+                        nextStep: 'end-fail'
+                    },
+                    {
+                        text: "Never share your password with anyone—including support. I will guide you through entering it securely on your own device.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Flawless safety compliance. Correctly protects authentication credentials and reinforces trust.",
+                        nextStep: 'end-success'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'acc-02',
+        title: 'Suspicious Account Alert',
+        category: 'Apple Account & Security',
+        difficulty: 'Hard',
+        customer: { name: 'David Vance', opening: "I just got an email saying my account was accessed from another country and I'm furious because nobody helped me last time this happened!" },
+        steps: [
+            {
+                id: 'acc02-1',
+                prompt: "David is angry about a security alert and past support failures. How do you handle the opening?",
+                choices: [
+                    {
+                        text: "Check if the email was a phishing scam first.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 50, ownership: 50, technical: 80, safety: 90, clarity: 85, trustDelta: -10 },
+                        feedback: "Dismisses the customer's emotional urgency too quickly.",
+                        nextStep: 'acc02-2'
+                    },
+                    {
+                        text: "I completely understand why you're furious, especially after having a poor support experience previously. I'm taking ownership of your account security right now.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Masterclass in de-escalation, acknowledgement of past failure, and immediate ownership.",
+                        nextStep: 'acc02-2'
+                    }
+                ]
+            },
+            {
+                id: 'acc02-2',
+                prompt: "David confirms he verified the email headers and it was a genuine notification. He asks what to do next.",
+                choices: [
+                    {
+                        text: "Let's immediately review your trusted devices, sign out of any unrecognized sessions, and update your account password.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Standard security best practice. Immediate session termination and password hardening.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Just ignore it, security blocks everything automatically.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 20, ownership: 10, technical: 0, safety: 0, clarity: 80, trustDelta: -30 },
+                        feedback: "Dangerous advice. Dismissing a confirmed security alert puts the user at severe risk.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'acc-03',
+        title: 'Trusted Device Verification Failure',
+        category: 'Apple Account & Security',
+        difficulty: 'Easy',
+        customer: { name: 'Elena Rostova', opening: "My new phone isn't getting the verification code popup when I try to sign in, and I don't know what to do." },
+        steps: [
+            {
+                id: 'acc03-1',
+                prompt: "Elena is confused about verification codes. How do you guide her?",
+                choices: [
+                    {
+                        text: "I can understand how confusing verification prompts can be when setting up a new device. Let's check a couple of quick settings together.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 90, technical: 90, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Very supportive and clear opening.",
+                        nextStep: 'acc03-2'
+                    },
+                    {
+                        text: "Just tap 'Didn't get a code' and select SMS.",
+                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 60, technical: 70, safety: 80, clarity: 85, trustDelta: 0 },
+                        feedback: "A bit rushed, but technically viable.",
+                        nextStep: 'acc03-2'
+                    }
+                ]
+            },
+            {
+                id: 'acc03-2',
+                prompt: "Elena asks if she should read the verification code aloud over the call so you can type it for her.",
+                choices: [
+                    {
+                        text: "Please never share your verification code with anyone—even support. Enter it directly into your own device's prompt.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 100, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Flawless security protocol adherence.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Sure, go ahead and read it to me so I can log you in.",
+                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0, clarity: 85, trustDelta: -40 },
+                        feedback: "CRITICAL SAFETY VIOLATION. Verification codes must never be shared.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'acc-04',
+        title: 'Forgotten Security Questions',
+        category: 'Apple Account & Security',
+        difficulty: 'Medium',
+        customer: { name: 'Gary Cooper', opening: "I'm trying to update my billing info, but it's asking for security questions I set up ten years ago and I have no idea what the answers are." },
+        steps: [
+            {
+                id: 'acc04-1',
+                prompt: "Gary forgot old security questions. How do you assist him?",
+                choices: [
+                    {
+                        text: "I can understand how tricky legacy security questions are to remember after all this time. Let's transition your account security to modern two-factor authentication.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Forward-looking security upgrade that permanently solves legacy security question issues.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Guess them until you get it right.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 20, clarity: 80, trustDelta: -40 },
+                        feedback: "Terrible advice that will result in account lockout.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'acc-05',
+        title: 'Recovery Key Misplacement Panic',
+        category: 'Apple Account & Security',
+        difficulty: 'Hard',
+        customer: { name: 'Clark Kent', opening: "I turned on Advanced Data Protection, but now I can't find my Recovery Key and I'm terrified I'll lose access to my account forever!" },
+        steps: [
+            {
+                id: 'acc05-1',
+                prompt: "Clark lost his Advanced Data Protection Recovery Key. How do you address this high-stakes security situation?",
+                choices: [
+                    {
+                        text: "I understand how nerve-wracking that realization is with Advanced Data Protection active. Because Apple does not keep a copy of your recovery key for privacy reasons, let's check your trusted devices right now.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 22 },
+                        feedback: "Exemplary handling of an advanced security feature. Validates panic, explains zero-knowledge privacy accurately, and provides actionable multi-device recovery.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "If you lost your key, your account is gone forever. Good luck.",
+                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 20, safety: 40, clarity: 80, trustDelta: -60 },
+                        feedback: "Horrific support response. Panics the customer without checking secondary trusted devices.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'acc-06',
+        title: 'Passkey Authentication Error',
+        category: 'Apple Account & Security',
+        difficulty: 'Medium',
+        customer: { name: 'Barry Allen', opening: "My passkey sign-in keeps throwing an error on my laptop saying 'Device not recognized' even though I use it every day." },
+        steps: [
+            {
+                id: 'acc-06-1',
+                prompt: "Barry is frustrated by a passkey error. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check Bluetooth and iCloud Keychain status on both your phone and laptop, as cross-device passkeys require both to maintain continuity relay.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Accurate technical discovery for cross-device passkey relay requirements.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Delete all your passkeys and use regular passwords.",
+                        scores: { empathy: 20, acknowledgement: 20, reassurance: 20, ownership: 30, technical: 30, safety: 50, clarity: 80, trustDelta: -20 },
+                        feedback: "Regressive advice that discards modern security credentials unnecessarily.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'acc-07',
+        title: 'Legacy Contact Setup Assistance',
+        category: 'Apple Account & Security',
+        difficulty: 'Easy',
+        customer: { name: 'Martha Wayne', opening: "I want to add my son as a Legacy Contact for my account so he can access my data if something ever happens to me. How do I do that?" },
+        steps: [
+            {
+                id: 'acc-07-1',
+                prompt: "Martha wants to set up a Legacy Contact. How do you guide her?",
+                choices: [
+                    {
+                        text: "That is a very thoughtful planning step. Let's go to Settings, tap your name, tap Sign-In & Security, and select Legacy Contact to set that up securely.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Supportive, clear, and accurate feature navigation.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Just write your password down on a piece of paper for him.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 0, safety: 10, clarity: 85, trustDelta: -30 },
+                        feedback: "Insecure advice that compromises credential security.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+
+    // --- CATEGORY 2: iCloud & Data (Scenarios 8-13) ---
+    {
+        id: 'icl-01',
+        title: 'Missing Photos After Migration',
+        category: 'ICloud & Data',
+        difficulty: 'Medium',
+        customer: { name: 'Marcus Brody', opening: "Hi... I just migrated to a new phone and my entire camera roll from last year seems missing. I'm really stressed because these are family photos." },
+        steps: [
+            {
+                id: 'icl01-1',
+                prompt: "Marcus is stressed about family photos. How do you respond?",
+                choices: [
+                    {
+                        text: "I hear how stressful that is, especially when family memories are involved. Let's check your iCloud sync status together.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 90, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Wonderful empathy and immediate direction toward checking cloud sync status.",
+                        nextStep: 'icl01-2'
+                    },
+                    {
+                        text: "Did you back up your old phone before switching?",
+                        scores: { empathy: 40, acknowledgement: 30, reassurance: 40, ownership: 50, technical: 70, safety: 80, clarity: 85, trustDelta: -5 },
+                        feedback: "Interrogative opening. Puts the customer on the defensive.",
+                        nextStep: 'icl01-2'
+                    }
+                ]
+            },
+            {
+                id: 'icl01-2',
+                prompt: "Marcus confirms Wi-Fi is connected, but the Photos app says 'Syncing 3,400 items... Paused on Low Battery.'",
+                choices: [
+                    {
+                        text: "You should erase the phone and restore from iCloud again.",
+                        scores: { empathy: 20, acknowledgement: 20, reassurance: 10, ownership: 30, technical: 10, safety: 40, clarity: 80, trustDelta: -25 },
+                        feedback: "Destructive and unnecessary recommendation. Erasing a device when sync is simply paused is terrible support.",
+                        nextStep: 'end-fail'
+                    },
+                    {
+                        text: "That explains it! iCloud pauses syncing when battery saver is active. Let's plug the phone into a charger to let the sync complete.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Perfect diagnosis. Identifies the exact blocker and provides clear action.",
+                        nextStep: 'end-success'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'icl-02',
+        title: 'iCloud Storage Full Warning',
+        category: 'ICloud & Data',
+        difficulty: 'Easy',
+        customer: { name: 'Linda Chen', opening: "My phone keeps telling me my iCloud storage is full, but I don't know what's taking up all the space." },
+        steps: [
+            {
+                id: 'icl02-1',
+                prompt: "Linda wants to understand what is consuming her iCloud space. How do you guide her?",
+                choices: [
+                    {
+                        text: "I can help you audit your storage breakdown. Let's go to Settings, tap your name, tap iCloud, and then tap 'Manage Account Storage' to see exact categories.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Clear navigation path and precise technical guidance.",
+                        nextStep: 'icl02-2'
+                    },
+                    {
+                        text: "You need to upgrade your iCloud storage plan immediately.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 90, clarity: 85, trustDelta: -10 },
+                        feedback: "Upselling before diagnosing what is actually filling the space is poor service.",
+                        nextStep: 'icl02-2'
+                    }
+                ]
+            },
+            {
+                id: 'icl02-2',
+                prompt: "Linda checks and sees Backups and Photos are taking up 195 GB of her 200 GB plan.",
+                choices: [
+                    {
+                        text: "That clarifies it. We can review old device backups or optimize photo storage to free up space without losing core files.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Constructive, tailored solutions respecting customer data.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Just delete all your photos.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 0, safety: 20, clarity: 80, trustDelta: -30 },
+                        feedback: "Reckless advice risking permanent loss of user memories.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'icl-03',
+        title: 'Contacts Not Syncing Across Devices',
+        category: 'ICloud & Data',
+        difficulty: 'Medium',
+        customer: { name: 'Robert Taylor', opening: "I added a new client contact on my iPad yesterday and it still hasn't appeared on my iPhone. This is ridiculous." },
+        steps: [
+            {
+                id: 'icl03-1',
+                prompt: "Robert is impatient about contact syncing. How do you respond?",
+                choices: [
+                    {
+                        text: "I understand how inconvenient it is when contact sync lags behind, especially with client information. Let's check your account settings on both devices.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 90, ownership: 90, technical: 95, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Strong acknowledgement of professional inconvenience and targeted troubleshooting.",
+                        nextStep: 'icl03-2'
+                    },
+                    {
+                        text: "Re-type the contact manually on your iPhone.",
+                        scores: { empathy: 30, acknowledgement: 30, reassurance: 40, ownership: 40, technical: 40, safety: 90, clarity: 80, trustDelta: -10 },
+                        feedback: "Workaround instead of fixing the underlying sync issue.",
+                        nextStep: 'icl03-2'
+                    }
+                ]
+            },
+            {
+                id: 'icl03-2',
+                prompt: "Robert confirms Contacts toggle is on, but his default account is set to a third-party email service instead of iCloud on his iPad.",
+                choices: [
+                    {
+                        text: "That explains why it stayed local to the iPad! Let's check your Default Account setting in Contacts so future entries sync seamlessly to iCloud.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Accurate root cause identification (default account mismatch).",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Turn off your phone and wait an hour.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 50, ownership: 50, technical: 40, safety: 90, clarity: 75, trustDelta: -5 },
+                        feedback: "Ineffective generic advice.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'icl-04',
+        title: 'Notes Disappeared After Sign-Out',
+        category: 'ICloud & Data',
+        difficulty: 'Medium',
+        customer: { name: 'Maya Angelou', opening: "I signed out of my iCloud account for a minute and all my notes vanished! Are they gone forever?" },
+        steps: [
+            {
+                id: 'icl04-1',
+                prompt: "Maya is panicking about vanished notes after signing out. How do you respond?",
+                choices: [
+                    {
+                        text: "I hear how frightening that sudden disappearance is. Don't worry—signing out temporarily removes local copies, but your notes are safely stored in iCloud. Let's sign back in.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Immediate calming reassurance coupled with accurate technical explanation of cloud caching.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "If you didn't back them up, they're probably deleted.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 50, clarity: 80, trustDelta: -40 },
+                        feedback: "Unnecessarily terrifying response that is technically incorrect for standard iCloud sync accounts.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'icl-05',
+        title: 'Shared Album Photos Not Visible',
+        category: 'ICloud & Data',
+        difficulty: 'Easy',
+        customer: { name: 'Lois Lane', opening: "I created a Shared Album for our family vacation, but my sister says she can't see any of the photos I added." },
+        steps: [
+            {
+                id: 'icl05-1',
+                prompt: "Lois's shared album isn't appearing for her sister. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check if the shared album invitation was successfully accepted by your sister, and verify that Shared Albums is enabled under your iCloud settings.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Clear, logical troubleshooting for shared album permissions.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Delete the album and recreate it.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 80, clarity: 85, trustDelta: -10 },
+                        feedback: "Unnecessary recreation instead of verifying invitation status.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'icl-06',
+        title: 'Corrupted Time Machine Backup',
+        category: 'ICloud & Data',
+        difficulty: 'Hard',
+        customer: { name: 'Stephen Strange', opening: "My Mac's external backup disk is throwing a checksum verification error during Time Machine backup and refusing to complete." },
+        steps: [
+            {
+                id: 'icl-06-1',
+                prompt: "Stephen has a Time Machine checksum error. How do you approach this?",
+                choices: [
+                    {
+                        text: "Let's run Disk Utility First Aid on the backup volume to check directory structure integrity before initiating a new sparse bundle verification.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Correct technical procedure for diagnosing storage corruption safely.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Format the hard drive immediately.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 10, clarity: 80, trustDelta: -50 },
+                        feedback: "Destructive advice that destroys existing backup archives.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+
+    // --- CATEGORY 3: Hardware & Performance (Scenarios 14-19) ---
+    {
+        id: 'hdw-01',
+        title: 'Severe Battery Drain After Update',
+        category: 'Hardware & Performance',
+        difficulty: 'Medium',
+        customer: { name: 'Kevin Malone', opening: "My phone battery drains by 50% in just a few hours since yesterday's software update, and I need this phone for work all day." },
+        steps: [
+            {
+                id: 'hdw01-1',
+                prompt: "Kevin needs his phone for work and is frustrated by rapid battery drain. How do you respond?",
+                choices: [
+                    {
+                        text: "Batteries degrade over time. You need a new phone.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 30, safety: 50, clarity: 80, trustDelta: -30 },
+                        feedback: "Premature and dismissive. Fails to consider background re-indexing after updates.",
+                        nextStep: 'hdw01-2'
+                    },
+                    {
+                        text: "I understand how critical reliable battery life is for your workday. Let's check your Battery Health and usage statistics.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 18 },
+                        feedback: "Strong acknowledgement of professional impact and precise troubleshooting direction.",
+                        nextStep: 'hdw01-2'
+                    }
+                ]
+            },
+            {
+                id: 'hdw01-2',
+                prompt: "Kevin checks battery stats and sees Photos and Spotlight indexing consuming 70% of background activity following the recent update.",
+                choices: [
+                    {
+                        text: "Major updates trigger temporary background re-indexing for 24-48 hours. Keeping it plugged in overnight will let this background process finish smoothly.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 100, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Exemplary technical explanation. Educates customer on normal post-update indexing behavior.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Turn off all notifications and delete half your apps.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 70, clarity: 85, trustDelta: -15 },
+                        feedback: "Overly aggressive troubleshooting that disrupts user experience unnecessarily.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'hdw-02',
+        title: 'Device Overheating During Charging',
+        category: 'Hardware & Performance',
+        difficulty: 'Hard',
+        customer: { name: 'Amanda Waller', opening: "My phone gets dangerously hot whenever I plug it into my fast charger, and I'm worried it might catch fire!" },
+        steps: [
+            {
+                id: 'hdw02-1',
+                prompt: "Amanda is anxious about overheating and fire risk. How do you handle her safety concern?",
+                choices: [
+                    {
+                        text: "I completely understand why getting unusually hot is alarming. Let's unplug the device immediately to let it cool down safely.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 100, safety: 100, clarity: 95, trustDelta: 25 },
+                        feedback: "Exemplary safety prioritization. Immediate cessation of charging, de-escalation, and calm reassurance.",
+                        nextStep: 'hdw02-2'
+                    },
+                    {
+                        text: "Phones get warm when fast charging, just keep using it.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 10, clarity: 80, trustDelta: -40 },
+                        feedback: "Dangerous disregard for user safety and thermal warnings.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            },
+            {
+                id: 'hdw02-2',
+                prompt: "Amanda unplugged the phone. She mentions she was using a third-party uncertified gas-station charging brick.",
+                choices: [
+                    {
+                        text: "That uncertified charging brick is likely delivering unregulated wattage. We strongly recommend using MFi-certified power adapters.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Accurate root cause identification and vital safety education.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Your battery is dead, buy a new phone.",
+                        scores: { empathy: 30, acknowledgement: 30, reassurance: 30, ownership: 30, technical: 40, safety: 50, clarity: 80, trustDelta: -10 },
+                        feedback: "Inaccurate diagnosis ignoring the uncertified charger variable.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'hdw-03',
+        title: 'Device Frozen on Apple Logo',
+        category: 'Hardware & Performance',
+        difficulty: 'Medium',
+        customer: { name: 'Tom Hardy', opening: "My phone froze during a restart and now it's stuck showing just the Apple logo for the last 30 minutes. Nothing responds!" },
+        steps: [
+            {
+                id: 'hdw03-1',
+                prompt: "Tom's phone is frozen on the logo. How do you respond?",
+                choices: [
+                    {
+                        text: "I understand how frustrating it is when a device freezes mid-boot. Let's perform a forced restart sequence together.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Solid acknowledgement and clear action plan.",
+                        nextStep: 'hdw03-2'
+                    },
+                    {
+                        text: "Leave it alone until the battery dies.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 40, safety: 70, clarity: 80, trustDelta: -5 },
+                        feedback: "Passive workaround rather than active guidance.",
+                        nextStep: 'hdw03-2'
+                    }
+                ]
+            },
+            {
+                id: 'hdw03-2',
+                prompt: "Tom asks if performing a forced restart will wipe his personal photos and messages.",
+                choices: [
+                    {
+                        text: "No, a forced restart simply interrupts and reboots the software memory cycle. It does not touch or erase your personal data.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 100, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Directly addresses data security anxiety accurately.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "There's always a chance everything gets erased.",
+                        scores: { empathy: 30, acknowledgement: 30, reassurance: 20, ownership: 40, technical: 60, safety: 80, clarity: 85, trustDelta: -15 },
+                        feedback: "Unnecessarily panics customer about data loss.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'hdw-04',
+        title: 'Microphone Muffled During Calls',
+        category: 'Hardware & Performance',
+        difficulty: 'Easy',
+        customer: { name: 'Diana Prince', opening: "People keep telling me I sound like I'm underwater whenever I talk on cellular calls, though speakerphone sounds fine." },
+        steps: [
+            {
+                id: 'hdw04-1',
+                prompt: "Diana's microphone sounds muffled on regular calls but works on speaker. How do you diagnose?",
+                choices: [
+                    {
+                        text: "Since speakerphone uses a top/front microphone while regular calls use the bottom primary microphone, let's check the bottom grille for debris.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Brilliant hardware logic (differentiating bottom primary mic from top mic).",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Your cellular carrier is dropping your audio packets.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 40, safety: 80, clarity: 85, trustDelta: -10 },
+                        feedback: "Incorrect hardware-vs-carrier assumption.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'hdw-05',
+        title: 'Touch Screen Unresponsive Corner',
+        category: 'Hardware & Performance',
+        difficulty: 'Medium',
+        customer: { name: 'Wanda Maximoff', opening: "The bottom-left corner of my touch screen won't respond to my taps at all, making it impossible to type certain letters." },
+        steps: [
+            {
+                id: 'hdw05-1',
+                prompt: "Wanda has a localized dead zone on her touch screen. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check if you have a thick tempered glass screen protector or case lip pressing against that corner, as physical interference is common.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 18 },
+                        feedback: "Excellent elimination of external hardware interference before suspecting digitizer failure.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Your screen is broken, you need to pay for a replacement immediately.",
+                        scores: { empathy: 20, acknowledgement: 20, reassurance: 20, ownership: 30, technical: 40, safety: 60, clarity: 85, trustDelta: -20 },
+                        feedback: "Jumps to expensive repair without ruling out screen protector interference.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'hdw-06',
+        title: 'Random Kernel Panics on MacBook',
+        category: 'Hardware & Performance',
+        difficulty: 'Hard',
+        customer: { name: 'Bruce Banner', opening: "My MacBook Pro keeps throwing random kernel panic reboots overnight while sleeping, generating an AppleSmartBatteryManager error report." },
+        steps: [
+            {
+                id: 'hdw-06-1',
+                prompt: "Bruce has a kernel panic log pointing to power management. How do you analyze?",
+                choices: [
+                    {
+                        text: "Let's review the panic report headers to determine if a third-party kext or failing peripheral is waking the SMC improperly.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Advanced technical log analysis suited for technically confident users.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Reinstall the operating system from scratch.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 80, clarity: 85, trustDelta: -10 },
+                        feedback: "Too drastic before analyzing kernel panic log parameters.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+
+    // --- CATEGORY 4: Software & Connectivity (Scenarios 20-25) ---
+    {
+        id: 'eco-01',
+        title: 'AirPods Pro Audio Switching Confusion',
+        category: 'Software & Connectivity',
+        difficulty: 'Easy',
+        customer: { name: 'Chloe Grace', opening: "My AirPods keep randomly switching audio from my Mac to my iPhone whenever a notification comes in, and it's driving me crazy." },
+        steps: [
+            {
+                id: 'eco01-1',
+                prompt: "Chloe is annoyed by automatic device switching. How do you respond?",
+                choices: [
+                    {
+                        text: "Turn off Bluetooth on your Mac.",
+                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 70, safety: 90, clarity: 80, trustDelta: -5 },
+                        feedback: "Drastic workaround that disables Mac Bluetooth entirely.",
+                        nextStep: 'eco01-2'
+                    },
+                    {
+                        text: "I can completely understand how disruptive automatic switching can be when trying to focus. Let's adjust your AirPods connection settings.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Great empathy and targeted solution for automatic switching behavior.",
+                        nextStep: 'eco01-2'
+                    }
+                ]
+            },
+            {
+                id: 'eco01-2',
+                prompt: "Chloe asks where to change the automatic connection setting.",
+                choices: [
+                    {
+                        text: "With your AirPods connected, go to Bluetooth settings on your iPhone, tap 'i' next to your AirPods, and change 'Connect to This iPhone' to 'When Last Connected'.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Precise step-by-step feature guidance.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Unpair and forget your AirPods forever.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 10, safety: 50, clarity: 80, trustDelta: -30 },
+                        feedback: "Unnecessary resetting when a simple preference toggle resolves it.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'eco-02',
+        title: 'Apple Watch Activity Sharing Stalled',
+        category: 'Software & Connectivity',
+        difficulty: 'Medium',
+        customer: { name: 'Mark Ruffalo', opening: "My workout rings aren't sharing with my workout buddy anymore, even though we're both connected to Wi-Fi." },
+        steps: [
+            {
+                id: 'eco02-1',
+                prompt: "Mark wants his fitness rings syncing properly. How do you guide him?",
+                choices: [
+                    {
+                        text: "I understand how fun it is to keep activity sharing in sync. Let's check your Fitness sharing profile and network connection status.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Supportive and friendly tone.",
+                        nextStep: 'eco02-2'
+                    },
+                    {
+                        text: "Restart both watches and phones immediately.",
+                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 60, safety: 90, clarity: 85, trustDelta: -5 },
+                        feedback: "Generic troubleshooting without checking account connection.",
+                        nextStep: 'eco02-2'
+                    }
+                ]
+            },
+            {
+                id: 'eco02-2',
+                prompt: "You determine that the iCloud account pairing between fitness profiles needs a refresh.",
+                choices: [
+                    {
+                        text: "Let's tap your friend's name in the Fitness app, remove the invite, and send a fresh invite to re-establish the encrypted sync handshake.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Effective fix for stalled activity sharing connections.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Factory reset your Apple Watch.",
+                        scores: { empathy: 20, acknowledgement: 20, reassurance: 10, ownership: 20, technical: 10, safety: 50, clarity: 80, trustDelta: -25 },
+                        feedback: "Disproportionate and destructive troubleshooting.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'eco-03',
+        title: 'Universal Clipboard Not Working',
+        category: 'Software & Connectivity',
+        difficulty: 'Hard',
+        customer: { name: 'Natalie Portman', opening: "Universal Clipboard stopped working between my MacBook and iPhone. Bluetooth and Wi-Fi are both on, and Handoff is enabled on both." },
+        steps: [
+            {
+                id: 'eco03-1',
+                prompt: "Natalie is technical and already checked basics. How do you approach troubleshooting?",
+                choices: [
+                    {
+                        text: "Since you've already verified Wi-Fi, Bluetooth, and Handoff settings, let's test toggling Handoff off and back on on both devices to refresh the iCloud relay token.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Respects customer technical knowledge and offers advanced relay token refresh.",
+                        nextStep: 'eco03-2'
+                    },
+                    {
+                        text: "Make sure Wi-Fi is turned on.",
+                        scores: { empathy: 40, acknowledgement: 30, reassurance: 40, ownership: 40, technical: 30, safety: 90, clarity: 80, trustDelta: -10 },
+                        feedback: "Ignores customer's prior statement that Wi-Fi is already on.",
+                        nextStep: 'eco03-2'
+                    }
+                ]
+            },
+            {
+                id: 'eco03-2',
+                prompt: "Toggling Handoff didn't immediately fix clipboard relay. What is the next logical step?",
+                choices: [
+                    {
+                        text: "Let's sign out of your Apple Account in System Settings on the Mac and sign back in to refresh continuity certificate credentials.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Accurate advanced troubleshooting for continuity token corruption.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Reinstall macOS.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 30, clarity: 80, trustDelta: -40 },
+                        feedback: "Extremely excessive for a clipboard sync glitch.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'eco-04',
+        title: 'AirTag False Left Behind Alerts',
+        category: 'Software & Connectivity',
+        difficulty: 'Easy',
+        customer: { name: 'Bruce Wayne', opening: "My AirTag keeps sending me 'Left Behind' notifications even though it's right in my gym bag next to me." },
+        steps: [
+            {
+                id: 'eco04-1',
+                prompt: "Bruce is getting false AirTag separation alerts. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check your 'Notify When Left Behind' location boundaries and verify if a specific Safe Location needs updating.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Clear location-boundary troubleshooting.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Replace the AirTag battery immediately.",
+                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 60, safety: 80, clarity: 85, trustDelta: -5 },
+                        feedback: "Premature hardware replacement advice.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'eco-05',
+        title: 'Cellular Data Roaming Failure Abroad',
+        category: 'Software & Connectivity',
+        difficulty: 'Medium',
+        customer: { name: 'Hal Jordan', opening: "I just landed in London and my cellular data isn't working at all, even though data roaming is toggled on in my settings!" },
+        steps: [
+            {
+                id: 'eco-05-1',
+                prompt: "Hal has no data abroad despite roaming being on. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check your APN carrier settings and toggle Airplane mode for 10 seconds to force your phone to re-handshake with local partner towers.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 18 },
+                        feedback: "Effective network handshake refresh for international roaming.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Buy a new physical SIM card.",
+                        scores: { empathy: 30, acknowledgement: 30, reassurance: 30, ownership: 30, technical: 30, safety: 70, clarity: 85, trustDelta: -15 },
+                        feedback: "Unnecessary step before trying network reset or carrier toggle.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'eco-06',
+        title: 'AirDrop Discovery Failure Between Devices',
+        category: 'Software & Connectivity',
+        difficulty: 'Easy',
+        customer: { name: 'Arthur Curry', opening: "My iPad won't show up on my iPhone's AirDrop sharing sheet when I try sending documents." },
+        steps: [
+            {
+                id: 'eco-06-1',
+                prompt: "Arthur's AirDrop discovery is failing. How do you guide him?",
+                choices: [
+                    {
+                        text: "Let's check Control Center on both devices to ensure Wi-Fi and Bluetooth are active, and AirDrop visibility is set to 'Everyone for 10 Minutes' or 'Contacts Only'.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100, clarity: 95, trustDelta: 15 },
+                        feedback: "Directly addresses Wi-Fi/Bluetooth prerequisites and visibility settings.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Email the files instead.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 20, safety: 90, clarity: 80, trustDelta: -10 },
+                        feedback: "Workaround instead of troubleshooting AirDrop connectivity.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+
+    // --- CATEGORY 5: Difficult Customers & Escalations (Scenarios 26-31) ---
+    {
+        id: 'esc-01',
+        title: 'Hostile Customer Demanding Supervisor',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Hard',
+        customer: { name: 'Gordon Ramsay', opening: "Your products are absolute garbage and your support is useless! Get me a supervisor on the line right this second or I'm calling my lawyer!" },
+        steps: [
+            {
+                id: 'esc01-1',
+                prompt: "Gordon is screaming and threatening legal action. How do you de-escalate?",
+                choices: [
+                    {
+                        text: "If you're going to threaten legal action, I'm disconnecting this call.",
+                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 10, technical: 0, safety: 20, clarity: 80, trustDelta: -50 },
+                        feedback: "Provocative and escalates hostility immediately. Terrible support behavior.",
+                        nextStep: 'end-fail'
+                    },
+                    {
+                        text: "I hear how angry and upset you are about your experience. Let me summarize your case notes so I can connect you smoothly to our specialist team.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100, clarity: 95, trustDelta: 25 },
+                        feedback: "Masterclass in de-escalation. Acknowledges anger without being defensive, takes ownership, and manages escalation professionally.",
+                        nextStep: 'end-success'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-02',
+        title: 'Customer Refusing All Troubleshooting',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Medium',
+        customer: { name: 'Evelyn Abbott', opening: "Look, I don't have time for your silly troubleshooting steps. I paid a lot of money for this device, so either fix it remotely or send me a new one." },
+        steps: [
+            {
+                id: 'esc02-1',
+                prompt: "Evelyn refuses troubleshooting and demands a replacement. How do you respond?",
+                choices: [
+                    {
+                        text: "I completely understand why you want a swift solution without tedious testing. Because replacements require verified diagnostic codes per service standards, let's run a quick 2-minute remote diagnostic together.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 95, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Brilliant framing. Aligns troubleshooting as the fast track to getting her what she wants rather than an arbitrary hurdle.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Policy requires you to do what I say or I can't help.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 40, clarity: 80, trustDelta: -40 },
+                        feedback: "Robotic rule-citing that alienates the customer.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-03',
+        title: 'Repeated Caller Experiencing Ongoing Bug',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Hard',
+        customer: { name: 'Arthur Pendelton', opening: "This is my fourth time calling about this exact same glitch! Every advisor tells me something different and nothing works!" },
+        steps: [
+            {
+                id: 'esc03-1',
+                prompt: "Arthur is exhausted from calling four times. How do you handle this high-friction moment?",
+                choices: [
+                    {
+                        text: "I am so sorry you've had to call four times without a resolution. That is incredibly frustrating. I am taking personal ownership of your case right now to review previous ticket history.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 95, safety: 100, clarity: 95, trustDelta: 25 },
+                        feedback: "Exemplary ownership and sincere apology for repeat contact fatigue.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Which department did you speak to last time?",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 50, safety: 80, clarity: 85, trustDelta: -10 },
+                        feedback: "Shifts burden of explanation back onto the frustrated customer.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-04',
+        title: 'Out-of-Warranty Free Repair Demand',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Hard',
+        customer: { name: 'Tony Stark', opening: "My screen cracked because I dropped it, but I expect you to replace it for free because I've bought all your products for years!" },
+        steps: [
+            {
+                id: 'esc04-1',
+                prompt: "Tony demands free out-of-warranty physical damage repair based on loyalty. How do you handle policy and empathy?",
+                choices: [
+                    {
+                        text: "I completely understand your frustration with accidental damage costs, especially as a longtime customer. While standard warranty covers manufacturing defects rather than accidental drops, let's review your AppleCare+ coverage options.",
+                        scores: { empathy: 95, acknowledgement: 100, reassurance: 90, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Professional balance of empathy for repair costs, clear policy boundaries regarding accidental damage, and helpful service options.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "You broke it, you pay for it. Policy is policy.",
+                        scores: { empathy: 0, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 50, safety: 70, clarity: 80, trustDelta: -40 },
+                        feedback: "Blunt and abrasive. Alienates customer.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-05',
+        title: 'Unreasonable Data Recovery Guarantee Demand',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Hard',
+        customer: { name: 'Lex Luthor', opening: "My device won't turn on at all. I demand that you guarantee you can recover my proprietary business data before I authorize any service." },
+        steps: [
+            {
+                id: 'esc-05-1',
+                prompt: "Lex demands a 100% guarantee on data recovery for a dead device. How do you respond?",
+                choices: [
+                    {
+                        text: "I understand how invaluable your business data is. While our technicians will make every diagnostic effort to preserve data integrity, hardware failures prevent us from offering a 100% absolute guarantee.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, clarity: 95, trustDelta: 18 },
+                        feedback: "Honest, realistic expectation setting without making unsupported guarantees.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "We guarantee 100% data recovery, don't worry about it.",
+                        scores: { empathy: 80, acknowledgement: 80, reassurance: 90, ownership: 80, technical: 0, safety: 0, clarity: 85, trustDelta: -30 },
+                        feedback: "Unsupported promise violation. Never guarantee data recovery on dead hardware.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-06',
+        title: 'Billing Dispute Escalation to Chargeback Threat',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Medium',
+        customer: { name: 'Selina Kyle', opening: "I'm disputing this charge with my credit card company right now and filing fraud charges if you don't issue an immediate refund!" },
+        steps: [
+            {
+                id: 'esc-06-1',
+                prompt: "Selina threatens a bank chargeback and fraud claims over a disputed charge. How do you handle this?",
+                choices: [
+                    {
+                        text: "I hear how upset you are about this charge. Let's look at the transaction details together so I can submit an official refund review request for you right now.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 95, safety: 100, clarity: 95, trustDelta: 20 },
+                        feedback: "Calm de-escalation offering immediate formal review pathway instead of arguing.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Go ahead and file a chargeback, we'll just ban your account.",
+                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 10, clarity: 80, trustDelta: -60 },
+                        feedback: "Combative and inflammatory response that destroys customer trust.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    }
+];
+
+// Append terminal nodes safely
+SCENARIOS.forEach(s => {
+    if (!s.steps.some(st => st.id === 'end-success')) {
+        s.steps.push({ id: 'end-success', prompt: "Call successfully resolved.", choices: [] });
+    }
+    if (!s.steps.some(st => st.id === 'end-fail')) {
+        s.steps.push({ id: 'end-fail', prompt: "Call concluded with critical missteps.", choices: [] });
+    }
+});
+
+/* ==========================================================================
+   FISHER-YATES RUNTIME ANSWER RANDOMIZATION
+   ========================================================================== */
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+/* ==========================================================================
+   DEVELOPER QA AUDIT ENGINE
+   ========================================================================== */
+function runDeveloperQAReport() {
+    const report = {
+        totalScenarios: SCENARIOS.length,
+        difficultyCounts: { Easy: 0, Medium: 0, Hard: 0 },
+        categoryCounts: {},
+        warnings: [],
+        structuralErrors: [],
+        phraseMemoryChecks: PHRASE_MEMORY_EXERCISES.length
+    };
+
+    const ids = new Set();
+
+    SCENARIOS.forEach(s => {
+        if (ids.has(s.id)) {
+            report.structuralErrors.push(`Duplicate scenario ID: ${s.id}`);
+        }
+        ids.add(s.id);
+
+        if (report.difficultyCounts[s.difficulty] !== undefined) {
+            report.difficultyCounts[s.difficulty]++;
+        } else {
+            report.difficultyCounts[s.difficulty] = 1;
+        }
+
+        report.categoryCounts[s.category] = (report.categoryCounts[s.category] || 0) + 1;
+
+        if (!s.steps || s.steps.length === 0) {
+            report.structuralErrors.push(`Scenario ${s.id} has no steps.`);
+        } else {
+            const stepIds = new Set(s.steps.map(st => st.id));
+            s.steps.forEach(st => {
+                if (!st.prompt) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id} missing prompt.`);
+                if (!st.choices || st.choices.length === 0) {
+                    report.structuralErrors.push(`Scenario ${s.id}, step ${st.id} missing choices.`);
+                } else {
+                    st.choices.forEach((c, cIdx) => {
+                        if (!c.text) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing text.`);
+                        if (!c.nextStep) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing nextStep.`);
+                        else if (c.nextStep !== 'end-success' && c.nextStep !== 'end-fail' && !stepIds.has(c.nextStep)) {
+                            report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} points to invalid nextStep: ${c.nextStep}`);
+                        }
+                        if (!c.scores) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing scoring dimensions.`);
+                        if (c.clarity === undefined) report.warnings.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing clarity score.`);
+                    });
+
+                    const lengths = st.choices.map(c => c.text.length);
+                    const max = Math.max(...lengths);
+                    const min = Math.min(...lengths);
+                    if (max > min * 2.8) {
+                        report.warnings.push(`Scenario ${s.id}, step ${st.id}: Length variance warning (Max: ${max}, Min: ${min}).`);
+                    }
+                }
+            });
+        }
+    });
+
+    return report;
+}
+
+/* ==========================================================================
+   LOCALSTORAGE PERSISTENCE
+   ========================================================================== */
+function loadGameState() {
+    try {
+        const savedProfile = localStorage.getItem(STORAGE_KEYS.profile);
+        if (savedProfile) {
+            const parsed = JSON.parse(savedProfile);
+            gameState.xp = parsed.xp || 0;
+            gameState.streak = parsed.streak || 0;
+            gameState.levelTitle = parsed.levelTitle || 'Trainee Advisor';
+            gameState.completedScenarios = parsed.completedScenarios || {};
+        }
+
+        const savedHistory = localStorage.getItem(STORAGE_KEYS.history);
+        if (savedHistory) {
+            gameState.recentScenarios = JSON.parse(savedHistory) || [];
+        }
+
+        const savedPM = localStorage.getItem(STORAGE_KEYS.phraseMemory);
+        if (savedPM) {
+            gameState.phraseMemoryCompleted = JSON.parse(savedPM) || {};
+        }
+
+        const savedLB = localStorage.getItem(STORAGE_KEYS.leaderboard);
+        if (savedLB) {
+            gameState.leaderboard = JSON.parse(savedLB) || [];
+        } else {
+            gameState.leaderboard = [
+                { name: 'Alex M.', score: 980, xp: 4500, date: '2026-03-01' },
+                { name: 'Jordan T.', score: 920, xp: 3800, date: '2026-03-02' }
+            ];
+        }
+    } catch (e) {
+        console.warn('LocalStorage error:', e);
+    }
+    updateLevelTitle();
+}
+
+function saveGameState() {
+    try {
+        localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify({
+            xp: gameState.xp,
+            streak: gameState.streak,
+            levelTitle: gameState.levelTitle,
+            completedScenarios: gameState.completedScenarios
+        }));
+        localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(gameState.recentScenarios));
+        localStorage.setItem(STORAGE_KEYS.phraseMemory, JSON.stringify(gameState.phraseMemoryCompleted));
+        localStorage.setItem(STORAGE_KEYS.leaderboard, JSON.stringify(gameState.leaderboard));
+    } catch (e) {
+        console.warn('Could not save to localStorage:', e);
+    }
+}
+
+function updateLevelTitle() {
+    const xp = gameState.xp;
+    if (xp >= 5000) gameState.levelTitle = 'Master Advisor 👑';
+    else if (xp >= 3500) gameState.levelTitle = 'Expert Advisor 🌟';
+    else if (xp >= 2000) gameState.levelTitle = 'Senior Advisor 🚀';
+    else if (xp >= 1000) gameState.levelTitle = 'Advisor 📞';
+    else if (xp >= 400) gameState.levelTitle = 'Apprentice 📚';
+    else gameState.levelTitle = 'Trainee 🎧';
+}
+
+/* ==========================================================================
+   NAVIGATION & VIEW RENDERER
+   ========================================================================== */
+const app = {
+    currentView: 'dashboard',
+
+    init() {
+        loadGameState();
+        this.navigateTo('dashboard');
+    },
+
+    handleLogoClick() {
+        logoClickCount++;
+        if (logoClickTimer) clearTimeout(logoClickTimer);
+        logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 2000);
+
+        if (logoClickCount >= 5) {
+            logoClickCount = 0;
+            qaPanelVisible = !qaPanelVisible;
+            this.navigateTo(this.currentView);
+        }
+    },
+
+    navigateTo(viewName, param) {
+        this.currentView = viewName;
+        window.scrollTo(0, 0);
+        this.renderHeaderStats();
+
+        const main = document.getElementById('main-content');
+        main.innerHTML = '';
+
+        switch (viewName) {
+            case 'dashboard':
+                main.innerHTML = this.renderDashboardHTML();
+                break;
+            case 'guided-select':
+                main.innerHTML = this.renderScenarioLibraryHTML('guided');
+                break;
+            case 'challenge-select':
+                main.innerHTML = this.renderScenarioLibraryHTML('challenge');
+                break;
+            case 'phrase-memory':
+                main.innerHTML = this.renderPhraseMemoryHTML();
+                break;
+            case 'scenario-library':
+                main.innerHTML = this.renderScenarioLibraryHTML('library');
+                break;
+            case 'leaderboard':
+                main.innerHTML = this.renderLeaderboardHTML();
+                break;
+            case 'progress':
+                main.innerHTML = this.renderProgressHTML();
+                break;
+            case 'simulator':
+                this.initSimulator(param.scenarioId, param.mode);
+                break;
+            case 'results':
+                main.innerHTML = this.renderResultsHTML(param);
+                break;
+            default:
+                main.innerHTML = this.renderDashboardHTML();
+        }
+    },
+
+    renderHeaderStats() {
+        document.getElementById('header-xp').innerText = gameState.xp;
+        document.getElementById('header-streak').innerText = gameState.streak;
+    },
+
+    renderDashboardHTML() {
+        const completedCount = Object.keys(gameState.completedScenarios).length;
+        const qaReport = runDeveloperQAReport();
+
+        return `
+            <div class="dashboard-hero">
+                <div class="level-badge">${gameState.levelTitle}</div>
+                <h2>Technical Support Call Lab 2.2</h2>
+                <p>Master empathetic communication, dynamic personality handling, and technical judgment.</p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="label">Total XP</div>
+                        <div class="value">${gameState.xp}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Scenarios Done</div>
+                        <div class="value">${completedCount} / ${SCENARIOS.length}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-grid">
+                <button class="menu-btn" onclick="app.navigateTo('guided-select')">
+                    <div class="menu-btn-left">
+                        <div class="menu-icon">📚</div>
+                        <div>
+                            <div>Guided Training</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Step-by-step coaching & rationale</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </button>
+
+                <button class="menu-btn" onclick="app.navigateTo('challenge-select')">
+                    <div class="menu-btn-left">
+                        <div class="menu-icon">📞</div>
+                        <div>
+                            <div>Challenge Mock Call</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Simulated live call with dynamic personalities</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </button>
+
+                <button class="menu-btn" onclick="app.navigateTo('phrase-memory')">
+                    <div class="menu-btn-left">
+                        <div class="menu-icon">💬</div>
+                        <div>
+                            <div>Phrase Memory</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Randomized communication framework exercises</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </button>
+
+                <button class="menu-btn" onclick="app.navigateTo('scenario-library')">
+                    <div class="menu-btn-left">
+                        <div class="menu-icon">🗂️</div>
+                        <div>
+                            <div>Scenario Library (${SCENARIOS.length} Authored)</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Browse fully authored scenarios</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </button>
+
+                <button class="menu-btn" onclick="app.navigateTo('leaderboard')">
+                    <div class="menu-btn-left">
+                        <div class="menu-icon">🏆</div>
+                        <div>
+                            <div>Local Leaderboard</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">View local advisor high scores</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </button>
+
+                <button class="menu-btn" onclick="app.navigateTo('progress')">
+                    <div class="menu-btn-left">
+                        <div class="menu-icon">📊</div>
+                        <div>
+                            <div>Progress & Stats</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Category breakdown & achievements</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </button>
+            </div>
+
+            ${qaPanelVisible ? `
+                <div class="qa-panel">
+                    <h3>🛠️ Developer QA Audit Panel (Hidden) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    • Total Authored Scenarios: <strong>${qaReport.totalScenarios}</strong><br>
+                    • Structural Errors: <strong style="color: ${qaReport.structuralErrors.length === 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${qaReport.structuralErrors.length === 0 ? 'None (Passed)' : qaReport.structuralErrors.length}</strong><br>
+                    • Length Warnings: ${qaReport.warnings.length}<br>
+                    • Difficulty Distribution: Easy (${qaReport.difficultyCounts.Easy}), Med (${qaReport.difficultyCounts.Medium}), Hard (${qaReport.difficultyCounts.Hard})<br>
+                    • Phrase Memory Exercises: ${qaReport.phraseMemoryChecks} items validated.<br>
+                    • Personality Integration: Active (6 profiles with dynamic modifiers).
+                </div>
+            ` : ''}
+        `;
+    },
+
+    renderScenarioLibraryHTML(mode) {
+        let title = "Scenario Library";
+        let subtitle = "Browse all available technical support scenarios.";
+
+        if (mode === 'guided') {
+            title = "Guided Training Mode";
+            subtitle = "Select a scenario for coached interactive practice.";
+        } else if (mode === 'challenge') {
+            title = "Challenge Mock Call";
+            subtitle = "Select a scenario for unassisted live simulation with dynamic personalities.";
+        }
+
+        const categories = ['All', 'Apple Account & Security', 'ICloud & Data', 'Hardware & Performance', 'Software & Connectivity', 'Difficult Customers & Escalations'];
+
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">${title}</div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">${subtitle} (${SCENARIOS.length} Total Authored)</p>
+                    </div>
+                    <button class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.75rem;" onclick="app.navigateTo('dashboard')">Back</button>
+                </div>
+
+                <div class="filter-bar" id="category-filters">
+                    ${categories.map((c, i) => `<div class="filter-chip ${i === 0 ? 'active' : ''}" onclick="app.filterScenarios('${c}', this)">${c}</div>`).join('')}
+                </div>
+
+                <div class="scenario-list" id="scenario-list-container">
+                    ${this.getScenarioListItemHTML(SCENARIOS, mode)}
+                </div>
+            </div>
+        `;
+    },
+
+    getScenarioListItemHTML(scenariosToRender, mode) {
+        if (scenariosToRender.length === 0) {
+            return `<div style="text-align: center; padding: 30px; color: var(--text-muted);">No scenarios found in this category.</div>`;
+        }
+        return scenariosToRender.map(s => {
+            const isCompleted = gameState.completedScenarios[s.id];
+            const badgeColor = isCompleted ? 'var(--accent-emerald)' : 'var(--accent-indigo)';
+            const statusText = isCompleted ? `Completed (Best: ${isCompleted.bestScore}%)` : 'Not Played';
+            
+            let clickAction = `app.startScenario('${s.id}', '${mode}')`;
+            if (mode === 'library') {
+                clickAction = `app.startScenario('${s.id}', 'guided')`;
+            }
+
+            return `
+                <div class="scenario-item" onclick="${clickAction}">
+                    <div class="scenario-info">
+                        <h5>${s.title}</h5>
+                        <p>${s.category} • Diff: ${s.difficulty} • <span style="color: ${badgeColor};">${statusText}</span></p>
+                    </div>
+                    <span style="color: var(--text-muted);">→</span>
+                </div>
+            `;
+        }).join('');
+    },
+
+    filterScenarios(category, el) {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+
+        const container = document.getElementById('scenario-list-container');
+        const filtered = category === 'All' ? SCENARIOS : SCENARIOS.filter(s => s.category === category);
+        const mode = document.querySelector('.card-title').innerText.includes('Guided') ? 'guided' : 
+                     document.querySelector('.card-title').innerText.includes('Challenge') ? 'challenge' : 'library';
+
+        container.innerHTML = this.getScenarioListItemHTML(filtered, mode);
+    },
+
+    startScenario(scenarioId, mode) {
+        this.navigateTo('simulator', { scenarioId, mode });
+    },
+
+    /* ==========================================================================
+       CALL SIMULATOR ENGINE (Dynamic Personalities & Randomized Choices)
+       ========================================================================== */
+    initSimulator(scenarioId, mode) {
+        const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
+        const personality = CUSTOMER_PERSONALITIES[Math.floor(Math.random() * CUSTOMER_PERSONALITIES.length)];
+
+        currentSession = {
+            mode: mode,
+            scenario: scenario,
+            currentStepIndex: 0,
+            trustStore: 70 + personality.moodMod,
+            callHistory: [],
+            decisionLog: [],
+            scores: {
+                empathy: 0,
+                acknowledgement: 0,
+                reassurance: 0,
+                ownership: 0,
+                technical: 0,
+                safety: 0,
+                clarity: 0
+            },
+            totalChoicesMade: 0,
+            callCompleted: false,
+            selectedPersonality: personality,
+            shuffledChoicesMap: {},
+            stateFlags: {}
+        };
+
+        scenario.steps.forEach(step => {
+            if (step.choices && step.choices.length > 0) {
+                currentSession.shuffledChoicesMap[step.id] = shuffleArray(step.choices);
+            }
+        });
+
+        currentSession.callHistory.push({
+            speaker: 'customer',
+            text: scenario.customer.opening,
+            stepId: 'opening'
+        });
+
+        this.renderSimulatorUI();
+    },
+
+    renderSimulatorUI() {
+        const main = document.getElementById('main-content');
+        const s = currentSession.scenario;
+        const currentStep = s.steps[currentSession.currentStepIndex];
+        const isEnded = currentSession.currentStepIndex >= s.steps.length - 1 || currentSession.callCompleted;
+        const choices = currentSession.shuffledChoicesMap[currentStep?.id] || [];
+
+        main.innerHTML = `
+            <div class="card">
+                <div class="call-header-bar">
+                    <div class="customer-meta">
+                        <div class="customer-name">${s.customer.name}</div>
+                        <div class="customer-mood" title="${currentSession.selectedPersonality.prefixNote}">Personality: ${currentSession.selectedPersonality.name}</div>
+                    </div>
+                    <div class="trust-meter-container">
+                        <div style="font-size: 0.75rem; font-weight: 600;">Trust: <span id="trust-val">${currentSession.trustStore}</span>%</div>
+                        <div class="trust-bar-bg">
+                            <div class="trust-bar-fill" id="trust-bar" style="width: ${currentSession.trustStore}%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-stream" id="chat-stream" style="margin-top: 14px;">
+                    ${currentSession.callHistory.map(h => `
+                        <div class="chat-bubble ${h.speaker}">
+                            <div class="speaker-label">${h.speaker === 'customer' ? s.customer.name : 'You (Advisor)'}</div>
+                            ${h.text}
+                            ${h.choiceText ? `<div style="margin-top:6px; font-size:0.75rem; color:var(--accent-cyan); font-style:italic;">Selected: "${h.choiceText}"</div>` : ''}
+                            ${h.personalityNote ? `<div style="margin-top:4px; font-size:0.72rem; color:var(--accent-amber); font-style:italic;">[${currentSession.selectedPersonality.name} reaction: ${h.personalityNote}]</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div id="interaction-area" style="margin-top: 16px;">
+                    ${!isEnded && currentStep && choices.length > 0 ? `
+                        <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted);">${currentStep.prompt}</div>
+                        <div class="choices-area">
+                            ${choices.map((choice, idx) => `
+                                <button class="choice-btn" onclick="app.makeChoice('${currentStep.id}', ${idx})">
+                                    <span class="choice-prefix">Option ${idx + 1}</span>
+                                    <span>${choice.text}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div style="text-align: center; padding: 20px;">
+                            <p style="margin-bottom: 14px; font-size: 0.9rem;">Call reached conclusion point.</p>
+                            <button class="btn btn-primary" onclick="app.finishCall()">View Post-Call Results</button>
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+
+        const chatStream = document.getElementById('chat-stream');
+        chatStream.scrollTop = chatStream.scrollHeight;
+    },
+
+    makeChoice(stepId, shuffledChoiceIndex) {
+        if (currentSession.callCompleted) return;
+
+        const currentStep = currentSession.scenario.steps.find(st => st.id === stepId);
+        const choices = currentSession.shuffledChoicesMap[stepId];
+        const choice = choices[shuffledChoiceIndex];
+
+        currentSession.totalChoicesMade++;
+
+        let pNote = '';
+        let personalityTrustDelta = 0;
+        if (currentSession.selectedPersonality && currentSession.selectedPersonality.modifierFn) {
+            const pResult = currentSession.selectedPersonality.modifierFn(choice, currentSession.trustStore);
+            personalityTrustDelta = pResult.trustDelta || 0;
+            pNote = pResult.note || '';
+        }
+
+        currentSession.decisionLog.push({
+            stepPrompt: currentStep.prompt,
+            choiceText: choice.text,
+            feedback: choice.feedback,
+            scores: choice.scores,
+            clarity: choice.clarity || 85,
+            personalityNote: pNote
+        });
+
+        const scores = choice.scores;
+        currentSession.scores.empathy += scores.empathy || 0;
+        currentSession.scores.acknowledgement += scores.acknowledgement || 0;
+        currentSession.scores.reassurance += scores.reassurance || 0;
+        currentSession.scores.ownership += scores.ownership || 0;
+        currentSession.scores.technical += scores.technical || 0;
+        currentSession.scores.safety += scores.safety !== undefined ? scores.safety : 80;
+        currentSession.scores.clarity += choice.clarity !== undefined ? choice.clarity : 85;
+
+        const baseTrustDelta = scores.trustDelta || 0;
+        currentSession.trustStore = Math.max(0, Math.min(100, currentSession.trustStore + baseTrustDelta + personalityTrustDelta));
+
+        currentSession.callHistory.push({
+            speaker: 'advisor',
+            text: choice.text,
+            stepId: currentStep.id,
+            choiceText: choice.text,
+            personalityNote: pNote
+        });
+
+        if (currentSession.mode === 'guided') {
+            this.renderGuidedFeedback(choice, pNote);
+        } else {
+            this.advanceStep(choice.nextStep);
+        }
+    },
+
+    renderGuidedFeedback(choice, pNote) {
+        const isGood = (choice.scores.empathy || 0) >= 70 && (choice.scores.safety || 80) >= 80;
+        const interactionArea = document.getElementById('interaction-area');
+
+        interactionArea.innerHTML = `
+            <div class="coaching-box ${isGood ? '' : 'bad'}">
+                <div class="coaching-title">
+                    <span>${isGood ? '✅ Communication Principle Met' : '⚠️ Communication Opportunity'}</span>
+                </div>
+                <div class="coaching-text">${choice.feedback} ${pNote ? `<br><strong style="color: var(--accent-amber);">Personality Reaction:</strong> ${pNote}` : ''}</div>
+                <button class="btn btn-primary" onclick="app.advanceStep('${choice.nextStep}')">Continue Call →</button>
+            </div>
+        `;
+    },
+
+    advanceStep(nextStepId) {
+        if (currentSession.callCompleted) return;
+
+        const s = currentSession.scenario;
+        
+        if (nextStepId === 'end-success' || nextStepId === 'end-fail' || currentSession.currentStepIndex >= s.steps.length - 1) {
+            this.finishCall();
+            return;
+        }
+
+        const nextIdx = s.steps.findIndex(st => st.id === nextStepId);
+        if (nextIdx !== -1) {
+            currentSession.currentStepIndex = nextIdx;
+            const nextStepObj = s.steps[nextIdx];
+            currentSession.callHistory.push({
+                speaker: 'customer',
+                text: nextStepObj.prompt,
+                stepId: nextStepObj.id
+            });
+        } else {
+            currentSession.currentStepIndex++;
+            if (currentSession.currentStepIndex >= s.steps.length - 1) {
+                this.finishCall();
+                return;
+            }
+        }
+
+        this.renderSimulatorUI();
+    },
+
+    /* ==========================================================================
+       FINISH CALL & RESULTS (7-Dimension Scoring)
+       ========================================================================== */
+    finishCall() {
+        if (currentSession.callCompleted) return;
+        currentSession.callCompleted = true;
+
+        const totalChoices = Math.max(1, currentSession.totalChoicesMade);
+        const avgScores = {
+            empathy: Math.round(currentSession.scores.empathy / totalChoices),
+            acknowledgement: Math.round(currentSession.scores.acknowledgement / totalChoices),
+            reassurance: Math.round(currentSession.scores.reassurance / totalChoices),
+            ownership: Math.round(currentSession.scores.ownership / totalChoices),
+            technical: Math.round(currentSession.scores.technical / totalChoices),
+            safety: Math.round(currentSession.scores.safety / totalChoices),
+            clarity: Math.round(currentSession.scores.clarity / totalChoices)
+        };
+
+        const overallScore = Math.round((avgScores.empathy + avgScores.acknowledgement + avgScores.reassurance + avgScores.ownership + avgScores.technical + avgScores.safety + avgScores.clarity) / 7);
+        const xpEarned = Math.max(50, overallScore * 2);
+
+        gameState.xp += xpEarned;
+        gameState.streak += 1;
+
+        const s = currentSession.scenario;
+        const existingRecord = gameState.completedScenarios[s.id];
+        const bestScore = existingRecord ? Math.max(existingRecord.bestScore, overallScore) : overallScore;
+        const attempts = existingRecord ? existingRecord.attempts + 1 : 1;
+
+        gameState.completedScenarios[s.id] = {
+            bestScore: bestScore,
+            attempts: attempts,
+            lastPlayed: new Date().toISOString().split('T')[0]
+        };
+
+        gameState.recentScenarios = [s.id, ...gameState.recentScenarios.filter(id => id !== s.id)].slice(0, 5);
+
+        gameState.leaderboard.push({
+            name: 'You (Advisor)',
+            score: overallScore,
+            xp: xpEarned,
+            date: new Date().toISOString().split('T')[0]
+        });
+        gameState.leaderboard.sort((a, b) => b.score - a.score);
+        gameState.leaderboard = gameState.leaderboard.slice(0, 10);
+
+        updateLevelTitle();
+        saveGameState();
+
+        this.navigateTo('results', {
+            scenario: s,
+            overallScore: overallScore,
+            xpEarned: xpEarned,
+            avgScores: avgScores,
+            trust: currentSession.trustStore,
+            history: currentSession.callHistory,
+            decisionLog: currentSession.decisionLog,
+            mode: currentSession.mode,
+            personalityName: currentSession.selectedPersonality.name
+        });
+    },
+
+    renderResultsHTML(param) {
+        const { scenario, overallScore, xpEarned, avgScores, trust, history, decisionLog, mode, personalityName } = param;
+
+        let reviewHTML = '';
+        if (decisionLog && decisionLog.length > 0) {
+            reviewHTML = decisionLog.map((dec, idx) => `
+                <div style="background: var(--bg-tertiary); padding: 10px; border-radius: var(--radius-sm); margin-bottom: 8px; font-size: 0.82rem;">
+                    <div style="font-weight: 600; color: var(--accent-cyan); margin-bottom: 2px;">Decision ${idx + 1}: ${dec.stepPrompt}</div>
+                    <div style="color: var(--text-main); font-style: italic; margin-bottom: 4px;">You chose: "${dec.choiceText}"</div>
+                    <div style="color: var(--text-muted);"><strong>Coaching analysis:</strong> ${dec.feedback}</div>
+                    ${dec.personalityNote ? `<div style="color: var(--accent-amber); margin-top:2px;"><strong>Personality factor (${personalityName}):</strong> ${dec.personalityNote}</div>` : ''}
+                </div>
+            `).join('');
+        } else {
+            reviewHTML = `<p style="color: var(--text-muted); font-size: 0.85rem;">No recorded decisions.</p>`;
+        }
+
+        return `
+            <div class="card results-card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Call Performance Review</div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">${scenario.title} • Customer: ${personalityName}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent-emerald);">+${xpEarned} XP</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Earned</div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <div style="font-size: 2rem; font-weight: 800; color: ${overallScore >= 80 ? 'var(--accent-emerald)' : overallScore >= 60 ? 'var(--accent-amber)' : 'var(--accent-rose)'};">${overallScore}%</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Overall Call Performance Score • Customer Trust: ${trust}%</div>
+                </div>
+
+                <div class="score-grid">
+                    <div class="score-box">
+                        <div class="s-label">Empathy</div>
+                        <div class="s-value" style="color: var(--accent-cyan);">${avgScores.empathy}%</div>
+                    </div>
+                    <div class="score-box">
+                        <div class="s-label">Acknowledgement</div>
+                        <div class="s-value" style="color: var(--accent-indigo);">${avgScores.acknowledgement}%</div>
+                    </div>
+                    <div class="score-box">
+                        <div class="s-label">Ownership</div>
+                        <div class="s-value" style="color: var(--accent-emerald);">${avgScores.ownership}%</div>
+                    </div>
+                    <div class="score-box">
+                        <div class="s-label">Technical</div>
+                        <div class="s-value" style="color: var(--accent-amber);">${avgScores.technical}%</div>
+                    </div>
+                    <div class="score-box">
+                        <div class="s-label">Safety</div>
+                        <div class="s-value" style="color: ${avgScores.safety >= 90 ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${avgScores.safety}%</div>
+                    </div>
+                    <div class="score-box">
+                        <div class="s-label">Clarity</div>
+                        <div class="s-value" style="color: var(--accent-cyan);">${avgScores.clarity}%</div>
+                    </div>
+                </div>
+
+                <div class="feedback-section">
+                    <h4>🔍 Choice-Specific Coaching Breakdown</h4>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">Here is how each decision impacted your score and customer trust:</p>
+                    ${reviewHTML}
+                </div>
+
+                <div class="feedback-section">
+                    <h4>📜 Call Transcript Timeline</h4>
+                    <div style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                        ${history.map(h => `
+                            <div style="background: var(--bg-tertiary); padding: 8px 10px; border-radius: var(--radius-sm); font-size: 0.8rem;">
+                                <strong style="color: ${h.speaker === 'customer' ? 'var(--accent-amber)' : 'var(--accent-cyan)'}; text-transform: uppercase; font-size: 0.7rem;">${h.speaker}:</strong>
+                                <p style="margin-top: 2px; color: var(--text-main);">${h.text}</p>
+                                ${h.personalityNote ? `<p style="color: var(--accent-amber); font-size:0.72rem; margin-top:2px;">[${h.personalityNote}]</p>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn btn-secondary" onclick="app.startScenario('${scenario.id}', '${mode}')">Play Again</button>
+                    <button class="btn btn-primary" onclick="app.navigateTo('dashboard')">Return to Dashboard</button>
+                </div>
+            </div>
+        `;
+    },
+
+    /* ==========================================================================
+       PHRASE MEMORY MODULE (Randomized Choices & Feedback)
+       ========================================================================== */
+    renderPhraseMemoryHTML() {
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Phrase Memory Training</div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">Internalize communication framework patterns with randomized choices.</p>
+                    </div>
+                    <button class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.75rem;" onclick="app.navigateTo('dashboard')">Back</button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;" id="phrase-exercises-container">
+                    ${PHRASE_MEMORY_EXERCISES.map((ex, idx) => {
+                        const isCompleted = gameState.phraseMemoryCompleted[ex.id];
+                        const shuffledChoices = shuffleArray(ex.choices);
+                        return `
+                            <div class="phrase-card" id="${ex.id}">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="font-size: 0.7rem; font-weight: 700; color: var(--accent-indigo); text-transform: uppercase;">Exercise ${idx + 1} • ${ex.category}</span>
+                                    <span style="font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: ${isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)'}; color: ${isCompleted ? 'var(--accent-emerald)' : 'var(--accent-indigo)'}; font-weight: 600;">
+                                        ${isCompleted ? 'Completed ✓' : 'New (+25 XP)'}
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.85rem; font-style: italic; color: var(--text-muted); margin-bottom: 8px;">Customer: "${ex.customerStatement}"</div>
+                                <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 10px;">${ex.prompt}</div>
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    ${shuffledChoices.map((c) => {
+                                        const originalIndex = ex.choices.indexOf(c);
+                                        return `
+                                            <button class="btn btn-secondary" style="text-align: left; justify-content: flex-start; font-size: 0.82rem; padding: 10px 14px;" onclick="app.submitPhraseAnswer('${ex.id}', ${originalIndex})">
+                                                ${c.text}
+                                            </button>
+                                        `;
+                                    }).join('')}
+                                </div>
+                                <div id="feedback-${ex.id}" style="margin-top: 10px; font-size: 0.8rem; display: none;"></div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    },
+
+    submitPhraseAnswer(exerciseId, originalChoiceIndex) {
+        const ex = PHRASE_MEMORY_EXERCISES.find(e => e.id === exerciseId);
+        const choice = ex.choices[originalChoiceIndex];
+        const isBest = choice.score >= 100;
+
+        const feedbackEl = document.getElementById(`feedback-${exerciseId}`);
+        feedbackEl.style.display = 'block';
+        feedbackEl.style.padding = '10px';
+        feedbackEl.style.borderRadius = 'var(--radius-sm)';
+        feedbackEl.style.background = isBest ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)';
+        feedbackEl.style.border = isBest ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(244, 63, 94, 0.3)';
+        feedbackEl.innerHTML = `<strong>${isBest ? '✅ Optimal Response' : '⚠️ Sub-optimal Response'}</strong><br>${choice.feedback}`;
+
+        if (isBest && !gameState.phraseMemoryCompleted[exerciseId]) {
+            gameState.phraseMemoryCompleted[exerciseId] = true;
+            gameState.xp += 25;
+            updateLevelTitle();
+            saveGameState();
+            this.renderHeaderStats();
+
+            const card = document.getElementById(exerciseId);
+            const badge = card.querySelector('span');
+            badge.innerText = 'Completed ✓';
+            badge.style.background = 'rgba(16, 185, 129, 0.2)';
+            badge.style.color = 'var(--accent-emerald)';
+        }
+    },
+
+    renderLeaderboardHTML() {
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Local Leaderboard</div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">Stored locally on this device/browser.</p>
+                    </div>
+                    <button class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.75rem;" onclick="app.navigateTo('dashboard')">Back</button>
+                </div>
+
+                <div style="overflow-x: auto; margin-top: 10px;">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Advisor</th>
+                                <th>Score</th>
+                                <th>XP</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${gameState.leaderboard.map((entry, idx) => `
+                                <tr>
+                                    <td>#${idx + 1}</td>
+                                    <td><strong>${entry.name}</strong></td>
+                                    <td>${entry.score}%</td>
+                                    <td>${entry.xp}</td>
+                                    <td>${entry.date}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    },
+
+    renderProgressHTML() {
+        const completedCount = Object.keys(gameState.completedScenarios).length;
+        const totalScenarios = SCENARIOS.length;
+        const pmCompletedCount = Object.keys(gameState.phraseMemoryCompleted).length;
+
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Advisor Progress</div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">Training metrics and milestones.</p>
+                    </div>
+                    <button class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.75rem;" onclick="app.navigateTo('dashboard')">Back</button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;">
+                    <div class="stat-card">
+                        <div class="label">Current Rank Title</div>
+                        <div class="value" style="color: var(--accent-amber);">${gameState.levelTitle}</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="label">Total Accumulated XP</div>
+                        <div class="value" style="color: var(--accent-cyan);">${gameState.xp} XP</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="label">Scenarios Completed</div>
+                        <div class="value">${completedCount} / ${totalScenarios} (${Math.round((completedCount / totalScenarios) * 100)}%)</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="label">Phrase Memory Completed</div>
+                        <div class="value">${pmCompletedCount} / ${PHRASE_MEMORY_EXERCISES.length}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    app.init();
+});
+</script>
+</body>
+</html>
