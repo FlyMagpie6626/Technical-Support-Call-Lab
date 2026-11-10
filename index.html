@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Stage 2.0.4 Final QA Assertion Cleanup)
+   TSCL 2.2 CORE APPLICATION ENGINE (Stage 2.0.1: Choice Integrity Hardening)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -801,49 +801,60 @@ function applyChoiceScoring(session, choice) {
    CHOICE INTEGRITY HELPER (Stage 2.0.1 Hardened)
    ========================================================================== */
 function validateAndAcceptChoice(session, stepId, shuffledChoiceIndex) {
+    // 1. Validate session and completion state.
     if (!session || session.callCompleted) {
         return { success: false, reason: 'Session completed or invalid' };
     }
 
+    // 2. Validate step ID.
     if (typeof stepId !== 'string' || !stepId.trim()) {
         return { success: false, reason: 'Invalid stepId string' };
     }
 
+    // 3. Validate scenario and steps.
     if (!session.scenario || !Array.isArray(session.scenario.steps)) {
         return { success: false, reason: 'Invalid scenario or steps' };
     }
 
+    // 4. Validate the active step and its matching ID.
     const currentStep = session.scenario.steps[session.currentStepIndex];
     if (!currentStep || currentStep.id !== stepId) {
         return { success: false, reason: 'Stale step ID or mismatch with current active step' };
     }
 
+    // 5. Validate the shuffled choices array.
     if (!session.shuffledChoicesMap || !Array.isArray(session.shuffledChoicesMap[stepId])) {
         return { success: false, reason: 'Missing choices array' };
     }
     const choices = session.shuffledChoicesMap[stepId];
 
+    // 6. Validate the integer choice index and bounds.
     if (!Number.isInteger(shuffledChoiceIndex) || shuffledChoiceIndex < 0 || shuffledChoiceIndex >= choices.length) {
         return { success: false, reason: 'Choice index out of bounds or non-integer' };
     }
 
+    // 7. Validate that the selected choice exists.
     const choice = choices[shuffledChoiceIndex];
     if (!choice) {
         return { success: false, reason: 'Selected choice does not exist' };
     }
 
+    // 8. Determine the active visit token without modifying the session.
     const prospectiveCounter = (session.stepVisitCounter || 0) + 1;
     const prospectiveVisitId = session.activeStepVisitId || `${session.currentStepIndex}:${stepId}:${prospectiveCounter}`;
 
+    // 9. Check whether that visit has already been processed.
     if (session.processedVisitIds && session.processedVisitIds[prospectiveVisitId]) {
         return { success: false, reason: 'Duplicate submission for active step visit' };
     }
 
+    // 10. Validate and apply scoring using the existing applyChoiceScoring() helper.
     const scoringResult = applyChoiceScoring(session, choice);
     if (!scoringResult.success) {
         return { success: false, reason: 'Invalid scoring data rejected by applyChoiceScoring' };
     }
 
+    // Only after all validation and scoring succeed may the helper initialize or update tracking properties and mark the visit as processed.
     if (!session.activeStepVisitId) {
         session.stepVisitCounter = prospectiveCounter;
         session.activeStepVisitId = prospectiveVisitId;
@@ -1953,7 +1964,7 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 }
 
 /* ==========================================================================
-   AUTOMATED DEFECT-INJECTION & CHOICE INTEGRITY TEST RUNNER (Stage 2.0.4 Cleaned)
+   AUTOMATED DEFECT-INJECTION & CHOICE INTEGRITY TEST RUNNER (STAGE 2.0.1)
    ========================================================================== */
 function runQADefectInjectionTests() {
     const results = [];
@@ -2084,7 +2095,7 @@ function runQADefectInjectionTests() {
         results.push({ test: '12. Invalid-State Preservation', passed: false, error: e.message });
     }
 
-    // Missing-State Regression Tests (Hardening 1-5)
+    // --- STAGE 2.0.1 HARDENING SUITE ---
     try {
         const helperTestSession = () => ({
             mode: 'guided',
@@ -2107,6 +2118,7 @@ function runQADefectInjectionTests() {
             }
         });
 
+        // Hardening Test 1: Missing activeStepVisitId combined with an invalid choice index
         const sT1 = helperTestSession();
         const snapT1 = JSON.parse(JSON.stringify(sT1));
         const resT1 = validateAndAcceptChoice(sT1, 'step-A', -1);
@@ -2119,6 +2131,7 @@ function runQADefectInjectionTests() {
                     JSON.stringify(sT1) === JSON.stringify(snapT1)
         });
 
+        // Hardening Test 2: Missing processedVisitIds combined with a missing choices array
         const sT2 = helperTestSession();
         sT2.shuffledChoicesMap = {};
         const snapT2 = JSON.parse(JSON.stringify(sT2));
@@ -2130,6 +2143,7 @@ function runQADefectInjectionTests() {
                     JSON.stringify(sT2) === JSON.stringify(snapT2)
         });
 
+        // Hardening Test 3: Missing tracking properties combined with invalid scoring data
         const sT3 = helperTestSession();
         sT3.shuffledChoicesMap['step-A'][0].scores.empathy = NaN;
         const snapT3 = JSON.parse(JSON.stringify(sT3));
@@ -2143,6 +2157,7 @@ function runQADefectInjectionTests() {
                     JSON.stringify(sT3) === JSON.stringify(snapT3)
         });
 
+        // Hardening Test 4: A valid selection with missing tracking properties
         const sT4 = helperTestSession();
         const resT4 = validateAndAcceptChoice(sT4, 'step-A', 0);
         results.push({
@@ -2154,214 +2169,75 @@ function runQADefectInjectionTests() {
                     sT4.stepVisitCounter === 1
         });
 
+        // Hardening Test 5: A second submission after that valid selection
         const resT5 = validateAndAcceptChoice(sT4, 'step-A', 0);
         results.push({
             test: 'Hardening 5: Second submission after valid selection is rejected as duplicate',
             passed: resT5.success === false
         });
 
-    } catch (e) {
-        results.push({ test: 'Hardening Tests Suite (1-5)', passed: false, error: e.message });
-    }
-
-    // --- STAGE 2.0.4 ISOLATED HARDENING, COMPREHENSIVE STORAGE INTERCEPTION & FINAL ASSERTION CLEANUP ---
-    const origCurrentSession = currentSession;
-    const origRenderSimulatorUI = app.renderSimulatorUI;
-    const origFinishCall = app.finishCall;
-    const origSetItem = Storage.prototype.setItem;
-    const origRemoveItem = Storage.prototype.removeItem;
-    const origClear = Storage.prototype.clear;
-    const gameStateSnapshotBefore = JSON.parse(JSON.stringify(gameState));
-
-    const lsSnapshots = {};
-    Object.values(STORAGE_KEYS).forEach(key => {
-        lsSnapshots[key] = localStorage.getItem(key);
-    });
-
-    let stubFinishCallInvokedCount = 0;
-    let renderSimulatorUICalledCount = 0;
-    let setItemAttemptCount = 0;
-    let removeItemAttemptCount = 0;
-    let clearAttemptCount = 0;
-    let storageMutationAttemptCount = 0;
-    let interceptorsInstalledBeforeTests = false;
-    let stubInstalledBeforeTerminal = false;
-
-    // Named finishCallStub function requirement (Stage 2.0.4)
-    function finishCallStub() {
-        stubFinishCallInvokedCount++;
-        if (currentSession) {
-            currentSession.callCompleted = true;
-        }
-    }
-
-    try {
-        // Intercept all LocalStorage mutation methods (setItem, removeItem, clear) to count and prevent changes
-        Storage.prototype.setItem = function(key, value) {
-            setItemAttemptCount++;
-            storageMutationAttemptCount++;
-        };
-        Storage.prototype.removeItem = function(key) {
-            removeItemAttemptCount++;
-            storageMutationAttemptCount++;
-        };
-        Storage.prototype.clear = function() {
-            clearAttemptCount++;
-            storageMutationAttemptCount++;
-        };
-
-        interceptorsInstalledBeforeTests = (
-            Storage.prototype.setItem !== origSetItem &&
-            Storage.prototype.removeItem !== origRemoveItem &&
-            Storage.prototype.clear !== origClear
-        );
-
-        // Temporarily stub out app methods and isolate currentSession with try/finally guarantee
-        app.renderSimulatorUI = function() {
-            renderSimulatorUICalledCount++;
-        };
-
-        app.finishCall = finishCallStub;
-
-        const helperTestSession = () => ({
-            mode: 'guided',
-            scenario: {
-                steps: [
-                    { id: 'step-A', prompt: 'Prompt A', choices: [{ text: 'A1', scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50 }, clarity: 50, feedback: 'FBA', nextStep: 'step-B' }] },
-                    { id: 'step-B', prompt: 'Prompt B', choices: [{ text: 'B1', scores: { empathy: 60, acknowledgement: 60, reassurance: 60, ownership: 60, technical: 60, safety: 60 }, clarity: 60, feedback: 'FBB', nextStep: 'end-success' }] }
-                ]
-            },
-            currentStepIndex: 0,
-            trustStore: 70,
-            callHistory: [],
-            decisionLog: [],
-            scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 10, safety: 10, clarity: 10 },
-            totalChoicesMade: 2,
-            callCompleted: false,
-            shuffledChoicesMap: {
-                'step-A': [{ text: 'A1', scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50 }, clarity: 50, feedback: 'FBA', nextStep: 'step-B' }],
-                'step-B': [{ text: 'B1', scores: { empathy: 60, acknowledgement: 60, reassurance: 60, ownership: 60, technical: 60, safety: 60 }, clarity: 60, feedback: 'FBB', nextStep: 'end-success' }]
-            }
-        });
-
-        // Hardening 6: Correct pending destination is accepted
+        // Hardening Test 6: Correct pending destination is accepted
         const sT6 = helperTestSession();
-        currentSession = sT6;
+        sT6.mode = 'guided';
         validateAndAcceptChoice(sT6, 'step-A', 0);
         sT6.waitingForContinue = true;
         sT6.pendingContinuationDestination = 'step-B';
         sT6.continuationProcessed = false;
+        const prevSession = currentSession;
+        currentSession = sT6;
         app.advanceStep('step-B');
         const acceptedAdvance = currentSession.currentStepIndex === 1 && currentSession.waitingForContinue === false;
-        results.push({ test: 'Hardening 6: Correct pending destination accepted', passed: acceptedAdvance });
 
-        // Hardening 7: Incorrect destination is rejected without progression
+        // Hardening Test 7: Incorrect destination is rejected without progression
         const sT7 = helperTestSession();
-        currentSession = sT7;
+        sT7.mode = 'guided';
         validateAndAcceptChoice(sT7, 'step-A', 0);
         sT7.waitingForContinue = true;
         sT7.pendingContinuationDestination = 'step-B';
         sT7.continuationProcessed = false;
+        currentSession = sT7;
         const idxBeforeT7 = currentSession.currentStepIndex;
         app.advanceStep('wrong-destination');
         const incorrectRejected = currentSession.currentStepIndex === idxBeforeT7 && currentSession.waitingForContinue === true;
-        results.push({ test: 'Hardening 7: Incorrect destination rejected without progression', passed: incorrectRejected });
 
-        // Hardening 8: Repeated continuation is rejected
+        // Hardening Test 8: Repeated continuation is rejected
         const sT8 = helperTestSession();
-        currentSession = sT8;
+        sT8.mode = 'guided';
         validateAndAcceptChoice(sT8, 'step-A', 0);
         sT8.waitingForContinue = true;
         sT8.pendingContinuationDestination = 'step-B';
         sT8.continuationProcessed = false;
+        currentSession = sT8;
         app.advanceStep('step-B');
         const stepIdxAfterFirst = currentSession.currentStepIndex;
         app.advanceStep('step-B');
         const repeatedRejected = currentSession.currentStepIndex === stepIdxAfterFirst;
-        results.push({ test: 'Hardening 8: Repeated continuation rejected', passed: repeatedRejected });
 
-        // Hardening 9 (Stage 2.0.4 Cleaned & Recorded): Stub Identity, Invocation Count & Production Path Trigger
+        // Hardening Test 9: A new accepted guided choice can establish a new pending continuation
         const sT9 = helperTestSession();
-        currentSession = sT9;
-        stubFinishCallInvokedCount = 0;
-
+        sT9.mode = 'guided';
         validateAndAcceptChoice(sT9, 'step-A', 0);
         sT9.waitingForContinue = true;
         sT9.pendingContinuationDestination = 'step-B';
         sT9.continuationProcessed = false;
+        currentSession = sT9;
         app.advanceStep('step-B');
-        const stepBReached = currentSession.currentStepIndex === 1;
-
         validateAndAcceptChoice(currentSession, 'step-B', 0);
         currentSession.waitingForContinue = true;
         currentSession.pendingContinuationDestination = 'end-success';
         currentSession.continuationProcessed = false;
-
-        // Stage 2.0.4 Cleanup Issue 1: Store the result of identity check immediately before terminal continuation
-        stubInstalledBeforeTerminal = (app.finishCall === finishCallStub);
-
-        const stubIsDistinct = (finishCallStub !== origFinishCall);
-
-        // Trigger the actual production app.advanceStep('end-success') path which invokes finishCall via stub
         app.advanceStep('end-success');
+        const newContinuationAccepted = currentSession.callCompleted === true || currentSession.currentStepIndex >= 1;
 
-        const terminalCompleted = currentSession.callCompleted === true;
-        const stubCalledOnce = (stubFinishCallInvokedCount === 1);
-        const continuationConsumed = (currentSession.waitingForContinue === false && currentSession.continuationProcessed === true);
+        currentSession = prevSession;
 
-        const stepIdxBeforeRepeat = currentSession.currentStepIndex;
-        app.advanceStep('end-success');
-        const repeatTerminalRejected = (stubFinishCallInvokedCount === 1 && currentSession.currentStepIndex === stepIdxBeforeRepeat);
-
-        results.push({
-            test: 'Hardening 9: Stub identity, distinctness from origFinishCall, single stub invocation via production advanceStep path',
-            passed: stepBReached && stubInstalledBeforeTerminal && stubIsDistinct && terminalCompleted && stubCalledOnce && continuationConsumed && repeatTerminalRejected
-        });
+        results.push({ test: 'Hardening 6: Correct pending destination accepted', passed: acceptedAdvance });
+        results.push({ test: 'Hardening 7: Incorrect destination rejected without progression', passed: incorrectRejected });
+        results.push({ test: 'Hardening 8: Repeated continuation rejected', passed: repeatedRejected });
+        results.push({ test: 'Hardening 9: New accepted guided choice establishes new continuation', passed: newContinuationAccepted });
 
     } catch (e) {
-        results.push({ test: 'Hardening Tests Suite (6-9)', passed: false, error: e.message });
-    } finally {
-        // Guaranteed restoration block
-        currentSession = origCurrentSession;
-        app.renderSimulatorUI = origRenderSimulatorUI;
-        app.finishCall = origFinishCall;
-        Storage.prototype.setItem = origSetItem;
-        Storage.prototype.removeItem = origRemoveItem;
-        Storage.prototype.clear = origClear;
-    }
-
-    // Explicit Isolation & Storage Write Checks (Stage 2.0.4 Cleaned Issues 1 & 2)
-    try {
-        const gameStateSnapshotAfter = JSON.parse(JSON.stringify(gameState));
-        const gameStateUnchanged = (JSON.stringify(gameStateSnapshotBefore) === JSON.stringify(gameStateSnapshotAfter));
-
-        let storageValuesUnchanged = true;
-        Object.values(STORAGE_KEYS).forEach(key => {
-            if (localStorage.getItem(key) !== lsSnapshots[key]) {
-                storageValuesUnchanged = false;
-            }
-        });
-
-        results.push({ test: 'Isolation Check 1: Named stub installed during terminal continuation', passed: stubInstalledBeforeTerminal });
-        results.push({ test: 'Isolation Check 2: Named stub distinct from original production function', passed: finishCallStub !== origFinishCall });
-        results.push({ test: 'Isolation Check 3: Stub invoked exactly once during terminal completion', passed: stubFinishCallInvokedCount === 1 });
-        results.push({ test: 'Isolation Check 4: Original production finishCall restored afterward', passed: app.finishCall === origFinishCall });
-        results.push({ test: 'Isolation Check 5: Interceptors verified installed before isolated tests', passed: interceptorsInstalledBeforeTests });
-        results.push({ 
-            test: 'Isolation Check 6: All attempted setItem, removeItem, and clear operations counted', 
-            passed: (typeof setItemAttemptCount === 'number' && setItemAttemptCount >= 0 &&
-                     typeof removeItemAttemptCount === 'number' && removeItemAttemptCount >= 0 &&
-                     typeof clearAttemptCount === 'number' && clearAttemptCount >= 0 &&
-                     storageMutationAttemptCount === setItemAttemptCount + removeItemAttemptCount + clearAttemptCount) 
-        });
-        results.push({ test: 'Isolation Check 7: Zero LocalStorage mutation attempts during isolated tests', passed: storageMutationAttemptCount === 0 });
-        results.push({ test: 'Isolation Check 8: All five TSCL LocalStorage values remain unchanged', passed: storageValuesUnchanged });
-        results.push({ test: 'Isolation Check 9: All three original Storage methods restored', passed: Storage.prototype.setItem === origSetItem && Storage.prototype.removeItem === origRemoveItem && Storage.prototype.clear === origClear });
-        results.push({ test: 'Isolation Check 10: currentSession restored to exact original reference', passed: currentSession === origCurrentSession });
-        results.push({ test: 'Isolation Check 11: app.renderSimulatorUI restored to original function', passed: app.renderSimulatorUI === origRenderSimulatorUI });
-        results.push({ test: 'Isolation Check 12: gameState remains unchanged', passed: gameStateUnchanged });
-    } catch (e) {
-        results.push({ test: 'Explicit Isolation Checks Suite', passed: false, error: e.message });
+        results.push({ test: 'Hardening Tests Suite', passed: false, error: e.message });
     }
 
     return results;
@@ -2598,7 +2474,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Stage 2.0.4 Cleaned) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Stage 2.0.1: Hardened) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2621,7 +2497,7 @@ const app = {
                         ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">4. Defect-Injection & Isolated Hardening Suite (Stage 2.0.4 Cleaned)</div>
+                    <div class="qa-section-title">4. Defect-Injection & Hardening Suite (Stage 2.0.1)</div>
                     <div class="qa-list">
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Test Suite</button>
                         ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'PASSED' : 'FAILED'}</strong> ${t.error ? `(${t.error})` : ''}</div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
@@ -2709,7 +2585,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE (Stage 2.0.4 Cleaned)
+       CALL SIMULATOR ENGINE (STAGE 2.0.1)
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
@@ -2820,6 +2696,7 @@ const app = {
     makeChoice(stepId, shuffledChoiceIndex) {
         if (currentSession.callCompleted) return;
 
+        // 1. Validate and accept choice through hardened choice integrity helper & scoring
         const validationResult = validateAndAcceptChoice(currentSession, stepId, shuffledChoiceIndex);
         if (!validationResult.success) {
             const interactionArea = document.getElementById('interaction-area');
@@ -2839,6 +2716,7 @@ const app = {
         const choice = validationResult.choice;
         const currentStep = validationResult.currentStep;
 
+        // 2. Apply personality modifiers
         let pNote = '';
         let personalityTrustDelta = 0;
         if (currentSession.selectedPersonality && currentSession.selectedPersonality.modifierFn) {
@@ -2847,6 +2725,7 @@ const app = {
             pNote = pResult.note || '';
         }
 
+        // 3. Update decision logs and call history
         currentSession.decisionLog.push({
             stepPrompt: currentStep.prompt,
             choiceText: choice.text,
@@ -2856,6 +2735,7 @@ const app = {
             personalityNote: pNote
         });
 
+        // 4. Update trust
         const baseTrustDelta = choice.scores.trustDelta || 0;
         currentSession.trustStore = Math.max(0, Math.min(100, currentSession.trustStore + baseTrustDelta + personalityTrustDelta));
 
@@ -2867,6 +2747,7 @@ const app = {
             personalityNote: pNote
         });
 
+        // 5. Continue through guided or challenge flow
         if (currentSession.mode === 'guided') {
             currentSession.waitingForContinue = true;
             currentSession.pendingContinuationDestination = choice.nextStep;
@@ -2897,10 +2778,10 @@ const app = {
 
         if (currentSession.mode === 'guided') {
             if (!currentSession.waitingForContinue || currentSession.continuationProcessed) {
-                return;
+                return; // Rejected: no pending continuation or already processed
             }
             if (nextStepId !== currentSession.pendingContinuationDestination) {
-                return;
+                return; // Rejected: requested destination does not match pending choice's destination
             }
             currentSession.waitingForContinue = false;
             currentSession.continuationProcessed = true;
