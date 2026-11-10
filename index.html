@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Stage 1.1: Runtime Validation Order)
+   TSCL 2.2 CORE APPLICATION ENGINE (Stage 1.1.1: Shared Accumulation & Test Integrity)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -763,6 +763,32 @@ function validateChoiceScoring(choice) {
         return false;
     }
     return true;
+}
+
+/* ==========================================================================
+   SHARED ACCUMULATION HELPER (Stage 1.1.1)
+   ========================================================================== */
+function applyChoiceScoring(session, choice) {
+    if (!validateChoiceScoring(choice)) {
+        return { success: false };
+    }
+    
+    session.totalChoicesMade = (session.totalChoicesMade || 0) + 1;
+
+    if (!session.scores) {
+        session.scores = { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0, clarity: 0 };
+    }
+
+    const scores = choice.scores;
+    session.scores.empathy += scores.empathy;
+    session.scores.acknowledgement += scores.acknowledgement;
+    session.scores.reassurance += scores.reassurance;
+    session.scores.ownership += scores.ownership;
+    session.scores.technical += scores.technical;
+    session.scores.safety += scores.safety;
+    session.scores.clarity += choice.clarity;
+
+    return { success: true };
 }
 
 /* ==========================================================================
@@ -1858,7 +1884,7 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 }
 
 /* ==========================================================================
-   AUTOMATED DEFECT-INJECTION TEST RUNNER (STAGE 1.1 EXTENDED)
+   AUTOMATED DEFECT-INJECTION TEST RUNNER (STAGE 1.1.1 REFACTORED)
    ========================================================================== */
 function runQADefectInjectionTests() {
     const results = [];
@@ -1999,43 +2025,50 @@ function runQADefectInjectionTests() {
         results.push({ test: '11. Valid complete scoring record', passed: rep.criticalErrors.length === 0 });
     } catch (e) { results.push({ test: '11. Valid complete scoring record', passed: false, error: e.message }); }
 
-    // --- TEST 12 REFACTORED (Stage 1.1: Invokes Shared Validator & Runtime Accumulation Logic) ---
+    // --- TEST 12 REFACTORED (Stage 1.1.1: Invokes Actual Production applyChoiceScoring Helper) ---
     try {
         const testSession = {
             scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50, clarity: 50 },
-            totalChoicesMade: 0
+            totalChoicesMade: 0,
+            unrelatedProperty: 'unchanged-value'
         };
         const initialEmpathy = testSession.scores.empathy;
+        const initialTotal = testSession.totalChoicesMade;
+        const initialUnrelated = testSession.unrelatedProperty;
 
-        // 1. Invalid choice test using shared validateChoiceScoring()
+        // 1. Invalid choice test using applyChoiceScoring
         const invalidChoice = {
             scores: { empathy: NaN, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 90 },
             clarity: 90
         };
 
-        const isValidInvalid = validateChoiceScoring(invalidChoice);
-        if (isValidInvalid) {
-            testSession.scores.empathy += invalidChoice.scores.empathy;
-            testSession.totalChoicesMade++;
-        }
-        const preserved = testSession.scores.empathy === initialEmpathy && testSession.totalChoicesMade === 0;
+        const invalidResult = applyChoiceScoring(testSession, invalidChoice);
+        const preserved = !invalidResult.success &&
+                          testSession.scores.empathy === initialEmpathy &&
+                          testSession.totalChoicesMade === initialTotal &&
+                          testSession.unrelatedProperty === initialUnrelated;
 
-        // 2. Valid choice test using shared validateChoiceScoring()
+        // 2. Valid choice test using applyChoiceScoring
         const validChoice = {
             scores: { empathy: 80, acknowledgement: 85, reassurance: 90, ownership: 95, technical: 90, safety: 100 },
             clarity: 90
         };
 
-        const isValidValid = validateChoiceScoring(validChoice);
-        if (isValidValid) {
-            testSession.scores.empathy += validChoice.scores.empathy;
-            testSession.totalChoicesMade++;
-        }
-        const accumulatedCorrectly = testSession.scores.empathy === initialEmpathy + 80 && testSession.totalChoicesMade === 1;
+        const validResult = applyChoiceScoring(testSession, validChoice);
+        const accumulatedCorrectly = validResult.success &&
+                                     testSession.scores.empathy === initialEmpathy + 80 &&
+                                     testSession.scores.acknowledgement === 50 + 85 &&
+                                     testSession.scores.reassurance === 50 + 90 &&
+                                     testSession.scores.ownership === 50 + 95 &&
+                                     testSession.scores.technical === 50 + 90 &&
+                                     testSession.scores.safety === 50 + 100 &&
+                                     testSession.scores.clarity === 50 + 90 &&
+                                     testSession.totalChoicesMade === 1 &&
+                                     testSession.unrelatedProperty === 'unchanged-value';
 
-        results.push({ test: '12. Shared validator runtime isolation & accumulation', passed: preserved && accumulatedCorrectly });
+        results.push({ test: '12. Shared validator & applyChoiceScoring runtime isolation & accumulation', passed: preserved && accumulatedCorrectly });
     } catch (e) {
-        results.push({ test: '12. Shared validator runtime isolation & accumulation', passed: false, error: e.message });
+        results.push({ test: '12. Shared validator & applyChoiceScoring runtime isolation & accumulation', passed: false, error: e.message });
     }
 
     return results;
@@ -2272,7 +2305,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Stage 1.1 Validation Order) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Stage 1.1.1 Shared Accumulation) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2295,7 +2328,7 @@ const app = {
                         ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">4. Defect-Injection Verification Suite (12 Tests with Test 12 Runtime Refactor)</div>
+                    <div class="qa-section-title">4. Defect-Injection Verification Suite (Test 12 using applyChoiceScoring)</div>
                     <div class="qa-list">
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Defect Tests</button>
                         ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'CAUGHT (PASS)' : 'FAILED'}</strong></div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
@@ -2383,7 +2416,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE (STAGE 1.1: VALIDATION MOVED TO BEGINNING OF makeChoice)
+       CALL SIMULATOR ENGINE (STAGE 1.1.1: USES applyChoiceScoring)
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
@@ -2493,10 +2526,11 @@ const app = {
         const choice = choices[shuffledChoiceIndex];
 
         // ====================================================================
-        // STAGE 1.1 REQUIREMENT: VALIDATION AT THE BEGINNING OF makeChoice()
-        // Occurs before any session state mutation or personality modifier execution.
+        // STAGE 1.1.1 REQUIREMENT: USE SHARED applyChoiceScoring()
+        // Validates and accumulates scoring atomically; rejects if invalid.
         // ====================================================================
-        if (!validateChoiceScoring(choice)) {
+        const scoringResult = applyChoiceScoring(currentSession, choice);
+        if (!scoringResult.success) {
             const interactionArea = document.getElementById('interaction-area');
             if (interactionArea) {
                 interactionArea.innerHTML = `
@@ -2510,9 +2544,7 @@ const app = {
             return;
         }
 
-        // Mutation and personality execution only occur if validation passes
-        currentSession.totalChoicesMade++;
-
+        // Personality modifiers, decision logs, history, and progression execute only upon successful scoring
         let pNote = '';
         let personalityTrustDelta = 0;
         if (currentSession.selectedPersonality && currentSession.selectedPersonality.modifierFn) {
@@ -2530,16 +2562,7 @@ const app = {
             personalityNote: pNote
         });
 
-        const scores = choice.scores;
-        currentSession.scores.empathy += scores.empathy;
-        currentSession.scores.acknowledgement += scores.acknowledgement;
-        currentSession.scores.reassurance += scores.reassurance;
-        currentSession.scores.ownership += scores.ownership;
-        currentSession.scores.technical += scores.technical;
-        currentSession.scores.safety += scores.safety;
-        currentSession.scores.clarity += choice.clarity;
-
-        const baseTrustDelta = scores.trustDelta || 0;
+        const baseTrustDelta = choice.scores.trustDelta || 0;
         currentSession.trustStore = Math.max(0, Math.min(100, currentSession.trustStore + baseTrustDelta + personalityTrustDelta));
 
         currentSession.callHistory.push({
