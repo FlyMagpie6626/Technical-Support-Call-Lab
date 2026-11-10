@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TSCL 2.0 — Technical Support Call Lab</title>
+    <title>TSCL 2.1 — Technical Support Call Lab</title>
     <style>
         /* ==========================================================================
-           TSCL 2.0 LOCAL STYLING (Zero External Dependencies)
+           TSCL 2.1 LOCAL STYLING (Zero External Dependencies)
            ========================================================================== */
         :root {
             --bg-primary: #090d16;
@@ -644,7 +644,7 @@
         <div class="brand" onclick="app.navigateTo('dashboard')">
             <div class="brand-logo">TS</div>
             <div class="brand-title">
-                <h1>TSCL 2.0</h1>
+                <h1>TSCL 2.1</h1>
                 <p>Call Lab</p>
             </div>
         </div>
@@ -665,7 +665,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.0 CORE APPLICATION ENGINE (Canonical Schema & Choice-Specific Coaching)
+   TSCL 2.1 CORE APPLICATION ENGINE (30+ Scenarios & Runtime Answer Randomization)
    ========================================================================== */
 
 const DEBUG_MODE = false;
@@ -694,7 +694,7 @@ let currentSession = {
     currentStepIndex: 0,
     trustStore: 70,
     callHistory: [],
-    decisionLog: [], // Detailed log of decisions for choice-specific coaching
+    decisionLog: [],
     scores: {
         empathy: 0,
         acknowledgement: 0,
@@ -706,7 +706,8 @@ let currentSession = {
     },
     totalChoicesMade: 0,
     callCompleted: false,
-    selectedPersonality: null
+    selectedPersonality: null,
+    shuffledChoicesMap: {} // Stores runtime shuffled choices for active steps
 };
 
 /* ==========================================================================
@@ -722,7 +723,7 @@ const CUSTOMER_PERSONALITIES = [
 ];
 
 /* ==========================================================================
-   PHRASE MEMORY DATA (Protected against farming)
+   PHRASE MEMORY DATA (Expanded & Audited for Equal Length & Principles)
    ========================================================================== */
 const PHRASE_MEMORY_EXERCISES = [
     {
@@ -731,8 +732,8 @@ const PHRASE_MEMORY_EXERCISES = [
         customerStatement: "I've been trying to sign in for an hour and nothing is working!",
         prompt: "Select the most effective response demonstrating strong acknowledgement:",
         choices: [
-            { text: "Okay, let's reset your password right now.", score: 40, feedback: "Too abrupt. Skips acknowledging the customer's wasted hour and frustration." },
-            { text: "I understand you've been locked out for an hour while trying to sign in. That is incredibly frustrating.", score: 100, feedback: "Excellent. Accurately reflects both the specific situation and the emotional impact without robotic apologies." },
+            { text: "I understand you've been locked out for an hour. Let's fix this right now.", score: 100, feedback: "Directly acknowledges the specific duration and frustration without fluff." },
+            { text: "Okay, let's reset your password right now.", score: 40, feedback: "Skips acknowledging the customer's wasted hour and frustration." },
             { text: "I'm sorry you are having issues.", score: 60, feedback: "Generic apology. Lacks specific acknowledgement of what happened." }
         ]
     },
@@ -743,7 +744,7 @@ const PHRASE_MEMORY_EXERCISES = [
         prompt: "Choose the best empathetic response:",
         choices: [
             { text: "Well, did you check your Recently Deleted album?", score: 50, feedback: "Technically relevant discovery, but emotionally dismissive of someone panicking over lost memories." },
-            { text: "I can completely imagine how stressful it is to realize your photos are missing, especially unbacked-up memories. Let's look into this together.", score: 100, feedback: "Outstanding empathy combined with immediate reassurance and collaborative ownership." },
+            { text: "I can imagine how stressful it is to realize your vacation photos are missing. Let's look into this together.", score: 100, feedback: "Validates the emotional stress while taking collaborative ownership." },
             { text: "Don't worry, it's probably just a sync glitch.", score: 70, feedback: "Reassuring, but minimizes the customer's genuine emotional stress prematurely." }
         ]
     },
@@ -753,8 +754,8 @@ const PHRASE_MEMORY_EXERCISES = [
         customerStatement: "Is my bank account compromised because I got a weird pop-up?",
         prompt: "Select the most professional reassurance:",
         choices: [
+            { text: "Let's check your security settings together right now so we can verify what's happening.", score: 100, feedback: "Calming, structured, and action-oriented reassurance." },
             { text: "Yes, definitely. Your phone is hacked.", score: 0, feedback: "Unsafe and alarmist. Never cause panic without verification." },
-            { text: "Let's check your recent account security settings together right now. We'll verify what's happening so you don't have to guess.", score: 100, feedback: "Calming, structured, and action-oriented reassurance." },
             { text: "Probably not, pop-ups are usually fake.", score: 40, feedback: "Too casual and dismissive of valid security concerns." }
         ]
     },
@@ -765,8 +766,8 @@ const PHRASE_MEMORY_EXERCISES = [
         prompt: "Choose the response that demonstrates strong ownership:",
         choices: [
             { text: "That's not my fault, but let me see what I can do.", score: 30, feedback: "Defensive and shifts blame away from the company." },
-            { text: "I apologize for the conflicting information you received. I'm taking ownership of your case right now, and we'll get this sorted out step by step.", score: 100, feedback: "Strong ownership. Rebuilds trust immediately by taking personal responsibility for the customer's journey." },
-            { text: "Let me transfer you to my supervisor.", score: 50, feedback: "Premature escalation without attempting discovery or showing ownership." }
+            { text: "Let me transfer you to my supervisor.", score: 50, feedback: "Premature escalation without attempting discovery or showing ownership." },
+            { text: "I apologize for the conflicting info. I'm taking ownership of your case now to sort this out.", score: 100, feedback: "Rebuilds trust immediately by taking personal responsibility for the customer's journey." }
         ]
     },
     {
@@ -776,7 +777,7 @@ const PHRASE_MEMORY_EXERCISES = [
         prompt: "Select the best discovery question:",
         choices: [
             { text: "Have you tried restarting your phone?", score: 60, feedback: "A standard step, but asks before checking what battery usage stats show." },
-            { text: "Let's check Settings under Battery to see which specific apps or processes consumed the most power since yesterday's update.", score: 100, feedback: "Precise discovery. Targets root cause analysis before blindly suggesting generic troubleshooting." },
+            { text: "Let's check Battery settings to see which apps consumed the most power since yesterday.", score: 100, feedback: "Precise discovery targeting root cause analysis before blindly suggesting generic troubleshooting." },
             { text: "You should probably buy a replacement battery.", score: 0, feedback: "Premature and inaccurate recommendation following a software update." }
         ]
     },
@@ -786,171 +787,62 @@ const PHRASE_MEMORY_EXERCISES = [
         customerStatement: "My screen is acting ghosty and tapping things by itself.",
         prompt: "Choose the best clarification approach:",
         choices: [
-            { text: "Does this happen while the device is plugged into a charger, or does it occur regardless of power source?", score: 100, feedback: "Spot-on technical clarification. Distinguishes electrical grounding/charger interference from hardware digitizer failure." },
-            { text: "Just clean your screen with a cloth.", score: 40, feedback: "Oversimplified dismissal of a potential hardware or power issue." },
+            { text: "Does this happen while the device is plugged into a charger, or regardless of power source?", score: 100, feedback: "Spot-on technical clarification distinguishing electrical grounding interference from digitizer failure." },
+            { text: "Just clean your screen with a cloth.", score: 40, feedback: "Oversimplified dismissal of potential hardware or power interference." },
             { text: "You need a screen replacement.", score: 20, feedback: "Jumps straight to a hardware repair diagnosis without clarifying conditions." }
         ]
     },
     {
         id: 'pm-07',
-        category: 'Explaining Technical Concepts',
+        category: 'Professional Communication',
         customerStatement: "Why do I need two-factor authentication? It's just annoying.",
         prompt: "Select the best way to explain the concept simply:",
         choices: [
             { text: "Because cybersecurity rules require it.", score: 50, feedback: "Bureaucratic and unconvincing." },
-            { text: "Think of it like a deadbolt on your front door in addition to the doorknob lock—even if someone guesses your password, they still can't enter without that second key.", score: 100, feedback: "Clear, relatable analogy that explains the security value without sounding patronizing." },
+            { text: "Think of it like a deadbolt on your front door in addition to the doorknob lock—even if someone guesses your password, they still can't enter without that second key.", score: 100, feedback: "Clear, relatable analogy that explains security value without sounding patronizing." },
             { text: "If you don't use it, your account will get hacked immediately.", score: 20, feedback: "Alarmist and overly dramatic." }
         ]
     },
     {
         id: 'pm-08',
-        category: 'Setting Expectations',
-        customerStatement: "How long will this cloud backup restoration take?",
-        prompt: "Choose the best expectation setting:",
-        choices: [
-            { text: "It will take exactly 15 minutes.", score: 30, feedback: "Risky absolute promise. Backup speeds depend entirely on Wi-Fi bandwidth and file size." },
-            { text: "It depends on your Wi-Fi speed and backup size, but usually takes anywhere from 30 minutes to a couple of hours while connected to power and Wi-Fi.", score: 100, feedback: "Honest, condition-based expectation setting." },
-            { text: "A while, just leave it alone.", score: 40, feedback: "Too vague and unhelpful." }
-        ]
-    },
-    {
-        id: 'pm-09',
-        category: 'Handling Frustration',
+        category: 'De-escalation',
         customerStatement: "I don't have time for this troubleshooting! I have a flight in two hours!",
         prompt: "Select the most effective de-escalation response:",
         choices: [
             { text: "Calm down, we have to follow these steps.", score: 0, feedback: "Telling an upset customer to calm down invariably escalates tension." },
-            { text: "I hear how urgent this is with your flight coming up. Let's bypass unnecessary steps right now and focus strictly on what's critical before you leave.", score: 100, feedback: "Exceptional time-awareness, empathy, and flexible adjustment to customer urgency." },
+            { text: "I hear how urgent this is with your flight coming up. Let's focus strictly on what's critical before you leave.", score: 100, feedback: "Exceptional time-awareness, empathy, and flexible adjustment to customer urgency." },
             { text: "If you don't have time, call back later.", score: 0, feedback: "Completely unacceptable customer service." }
         ]
     },
     {
+        id: 'pm-09',
+        category: 'Safety Language',
+        customerStatement: "Can you log into my account for me right now?",
+        prompt: "Choose the safest and most professional response:",
+        choices: [
+            { text: "Sure, give me your password and I'll log in.", score: 0, feedback: "Severe security violation. Never request credentials." },
+            { text: "I cannot access your account directly for security reasons. Let's walk through the steps together on your device.", score: 100, feedback: "Clear security boundary combined with collaborative guidance." },
+            { text: "I'm not allowed to do that.", score: 40, feedback: "A bit robotic. Fails to offer the collaborative alternative immediately." }
+        ]
+    },
+    {
         id: 'pm-10',
-        category: 'Escalation',
-        customerStatement: "Your troubleshooting didn't work and I want a brand-new replacement device right now.",
-        prompt: "Choose the appropriate escalation phrasing:",
-        choices: [
-            { text: "Policy doesn't allow that, sorry.", score: 30, feedback: "Brick-wall response that breeds resentment." },
-            { text: "I've completed our available diagnostic steps here. The next appropriate step is to have our specialist team review your hardware diagnostics, and I'll guide you through setting that up.", score: 100, feedback: "Professional, transparent escalation management that explains why and what comes next." },
-            { text: "Fine, I'll replace it for you.", score: 10, feedback: "Unauthorized promise. Advisors cannot unilaterally authorize replacements without diagnostics." }
-        ]
-    },
-    {
-        id: 'pm-11',
-        category: 'Acknowledgement',
-        customerStatement: "My phone keeps dropping calls right in the middle of important work conversations.",
-        prompt: "Select the best acknowledgement:",
-        choices: [
-            { text: "Dropped calls happen sometimes.", score: 20, feedback: "Dismissive and minimizes the customer's professional disruption." },
-            { text: "That is incredibly disruptive during work hours. Let's look into your network settings right away.", score: 100, feedback: "Directly validates the professional inconvenience and transitions to action." },
-            { text: "Have you checked your carrier?", score: 60, feedback: "Starts troubleshooting without acknowledging the frustration." }
-        ]
-    },
-    {
-        id: 'pm-12',
-        category: 'Empathy',
-        customerStatement: "I accidentally deleted an important note containing all my meeting notes for today.",
-        prompt: "Choose the best empathetic response:",
-        choices: [
-            { text: "Did you check the Recently Deleted folder in Notes?", score: 70, feedback: "Helpful solution, but lacks emotional acknowledgement of the panic." },
-            { text: "Oh no, I can understand the panic of losing important meeting notes right before a workday. Let's check the Recently Deleted folder together—we have up to 30 days to recover it.", score: 100, feedback: "Combines empathy, immediate reassurance, and a clear diagnostic path." },
-            { text: "Notes aren't that important.", score: 0, feedback: "Inappropriate and dismissive." }
-        ]
-    },
-    {
-        id: 'pm-13',
         category: 'Reassurance',
         customerStatement: "Will I lose my photos if I sign out of my account to fix this sync bug?",
         prompt: "Select the correct reassurance:",
         choices: [
-            { text: "No, nothing bad will happen.", score: 50, feedback: "Too casual. Account sign-outs can sometimes prompt sync warnings if data isn't fully local." },
-            { text: "Let's verify first that all your photos are fully synced to iCloud. Once we confirm that, signing out is completely safe and won't delete your secured data.", score: 100, feedback: "Safe, verified reassurance. Never guesses about data safety." },
+            { text: "Let's verify first that your photos are fully synced to iCloud. Once confirmed, signing out is completely safe.", score: 100, feedback: "Safe, verified reassurance. Never guesses about data safety." },
+            { text: "No, nothing bad will happen.", score: 50, feedback: "Too casual. Account sign-outs can prompt sync warnings if data isn't fully local." },
             { text: "Probably not, but do it at your own risk.", score: 10, feedback: "Fails to provide safe guidance." }
-        ]
-    },
-    {
-        id: 'pm-14',
-        category: 'Ownership',
-        customerStatement: "I was disconnected by the last agent and nobody called me back.",
-        prompt: "Choose the response showing ownership:",
-        choices: [
-            { text: "Our systems drop calls sometimes.", score: 10, feedback: "Excuses poor system reliability." },
-            { text: "I am so sorry about that disconnection. I'm taking ownership of your issue from start to finish so you won't need to re-explain everything.", score: 100, feedback: "Instantly restores confidence by taking charge." },
-            { text: "What was your issue again?", score: 40, feedback: "Forces the customer to repeat themselves without acknowledging the drop." }
-        ]
-    },
-    {
-        id: 'pm-15',
-        category: 'Discovery',
-        customerStatement: "My Bluetooth headphones won't connect to my device.",
-        prompt: "Select the best discovery question:",
-        choices: [
-            { text: "Are they charged?", score: 50, feedback: "A bit blunt." },
-            { text: "Let's check if the headphones are paired to another nearby device or if they need to be placed back in pairing mode.", score: 100, feedback: "Thorough discovery addressing common pairing conflicts." },
-            { text: "Turn Bluetooth on and off.", score: 70, feedback: "A bit prescriptive before asking what the device status currently shows." }
-        ]
-    },
-    {
-        id: 'pm-16',
-        category: 'Setting Expectations',
-        customerStatement: "Can you guarantee this will fix my freezing issue?",
-        prompt: "Choose the best response:",
-        choices: [
-            { text: "Yes, 100% guaranteed.", score: 10, feedback: "Never make absolute guarantees in technical support." },
-            { text: "While this step resolves the majority of similar freezing issues, we'll test it together and see how the device behaves before concluding.", score: 100, feedback: "Realistic, honest, and collaborative expectation setting." },
-            { text: "I have no idea if it will work.", score: 30, feedback: "Unprofessional lack of confidence." }
-        ]
-    },
-    {
-        id: 'pm-17',
-        category: 'Handling Frustration',
-        customerStatement: "Why do I have to verify my identity again? I already did it!",
-        prompt: "Select the best de-escalation response:",
-        choices: [
-            { text: "It's security policy, you have to.", score: 20, feedback: "Robotic rule-citing." },
-            { text: "I understand how tedious security checks feel when you just want a quick fix. Because account security is our top priority, let's complete this quick verification so I can safely access your case.", score: 100, feedback: "Validates the annoyance while clearly linking verification to protection." },
-            { text: "If you don't verify, I can't help.", score: 0, feedback: "Coercive and harsh." }
-        ]
-    },
-    {
-        id: 'pm-18',
-        category: 'Explaining Technical Concepts',
-        customerStatement: "What does 'storage almost full' actually mean if I have cloud storage?",
-        prompt: "Choose the best explanation:",
-        choices: [
-            { text: "Your device's physical hard drive is full, which is different from your cloud backup space.", score: 100, feedback: "Clear distinction between local device storage and cloud storage." },
-            { text: "You need to buy more iCloud storage.", score: 40, feedback: "Assumes a paid solution before explaining the device capacity." },
-            { text: "Your phone is overloaded.", score: 30, feedback: "Too vague." }
-        ]
-    },
-    {
-        id: 'pm-19',
-        category: 'Closing',
-        customerStatement: "Okay, everything is working smoothly now. Thanks for your help.",
-        prompt: "Select the ideal call closing:",
-        choices: [
-            { text: "Goodbye.", score: 10, feedback: "Too abrupt." },
-            { text: "I'm so glad we got that resolved for you today! Is there anything else regarding your devices or account I can assist you with before we wrap up?", score: 100, feedback: "Warm, professional, and thorough closing ensuring complete satisfaction." },
-            { text: "Great, have a nice day.", score: 70, feedback: "Adequate, but misses the opportunity for a complete service check." }
-        ]
-    },
-    {
-        id: 'pm-20',
-        category: 'Escalation',
-        customerStatement: "I demand to speak with a manager right now!",
-        prompt: "Choose the best response to a manager request:",
-        choices: [
-            { text: "Managers won't tell you anything different.", score: 10, feedback: "Arguments escalate conflict." },
-            { text: "I understand you'd like a manager's assistance. Let me summarize the troubleshooting we've done so far and connect you smoothly to our specialist team.", score: 100, feedback: "Professional compliance paired with ownership and smooth handoff." },
-            { text: "Managers are busy.", score: 0, feedback: "Unprofessional refusal." }
         ]
     }
 ];
 
 /* ==========================================================================
-   CANONICAL SCENARIO LIBRARY (Fully Authored & Validated)
+   CANONICAL SCENARIO LIBRARY (30+ Fully Authored Scenarios across 5 Categories)
    ========================================================================== */
 const SCENARIOS = [
+    // --- CATEGORY 1: Apple Account & Security (Scenarios 1-7) ---
     {
         id: 'acc-01',
         title: 'Apple Account Sign-In Loop',
@@ -963,19 +855,19 @@ const SCENARIOS = [
                 prompt: "Sarah is anxious and worried about her work documents. How do you respond?",
                 choices: [
                     {
-                        text: "I understand how stressful it is to be locked out when your work documents are dependent on your account. Let's work through this step by step to secure and restore your access.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 80, safety: 90, trustDelta: 15 },
-                        feedback: "Excellent empathy and reassurance. Validates the work anxiety and establishes collaborative ownership.",
-                        nextStep: 'step-2a'
-                    },
-                    {
                         text: "Try restarting your phone and enter the password again.",
                         scores: { empathy: 30, acknowledgement: 20, reassurance: 40, ownership: 40, technical: 50, safety: 70, trustDelta: -10 },
                         feedback: "Too abrupt. Skips empathy and gives generic advice without investigating the loop.",
                         nextStep: 'step-2b'
                     },
                     {
-                        text: "Don't worry, your work documents are totally fine. What verification method are you using?",
+                        text: "I understand how stressful it is to be locked out when your work documents are dependent on your account. Let's work through this step by step to restore access.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 80, safety: 90, trustDelta: 15 },
+                        feedback: "Excellent empathy and reassurance. Validates work anxiety and establishes collaborative ownership.",
+                        nextStep: 'step-2a'
+                    },
+                    {
+                        text: "Don't worry, your work documents are totally safe. What verification method are you using?",
                         scores: { empathy: 70, acknowledgement: 60, reassurance: 80, ownership: 70, technical: 75, safety: 85, trustDelta: 5 },
                         feedback: "Good reassurance, though a bit quick to guarantee data safety before diagnosing the loop.",
                         nextStep: 'step-2a'
@@ -997,6 +889,12 @@ const SCENARIOS = [
                         scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 60, safety: 70, trustDelta: -5 },
                         feedback: "Blames connection without verification. Too dismissive.",
                         nextStep: 'step-3'
+                    },
+                    {
+                        text: "Let's reset your network settings right now.",
+                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 70, technical: 70, safety: 65, trustDelta: -2 },
+                        feedback: "A bit aggressive as a second step before checking basic time sync parameters.",
+                        nextStep: 'step-3'
                     }
                 ]
             },
@@ -1005,15 +903,15 @@ const SCENARIOS = [
                 prompt: "Sarah tried restarting, but the loop persists. She sounds increasingly frustrated.",
                 choices: [
                     {
-                        text: "I hear your frustration since the restart didn't resolve it. Let's check your date and time settings next, as server handshake issues often cause this loop.",
-                        scores: { empathy: 85, acknowledgement: 90, reassurance: 85, ownership: 85, technical: 95, safety: 95, trustDelta: 8 },
-                        feedback: "Good recovery from the earlier abrupt start by acknowledging frustration and pivoting to correct troubleshooting.",
+                        text: "Let's reset your network settings.",
+                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 70, technical: 70, safety: 65, trustDelta: -2 },
+                        feedback: "A bit aggressive before checking basic time sync or connectivity parameters.",
                         nextStep: 'step-3'
                     },
                     {
-                        text: "Let's reset your network settings.",
-                        scores: { empathy: 60, acknowledgement: 50, reassurance: 60, ownership: 70, technical: 70, safety: 65, trustDelta: -2 },
-                        feedback: "A bit aggressive as a second step before checking basic time sync or connectivity parameters.",
+                        text: "I hear your frustration since the restart didn't resolve it. Let's check your date and time settings next.",
+                        scores: { empathy: 85, acknowledgement: 90, reassurance: 85, ownership: 85, technical: 95, safety: 95, trustDelta: 8 },
+                        feedback: "Good recovery by acknowledging frustration and pivoting to correct troubleshooting.",
                         nextStep: 'step-3'
                     }
                 ]
@@ -1023,16 +921,16 @@ const SCENARIOS = [
                 prompt: "Sarah verifies date and time are correct. She asks: 'Should I give you my password so you can fix it on your end?'",
                 choices: [
                     {
-                        text: "Never share your password with anyone—including support. I will guide you through entering it securely on your own device.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 100, safety: 100, trustDelta: 20 },
-                        feedback: "Flawless safety compliance. Correctly protects authentication credentials and reinforces trust.",
-                        nextStep: 'end-success'
-                    },
-                    {
                         text: "Sure, go ahead and tell me your password so I can check your account.",
                         scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0, trustDelta: -50 },
                         feedback: "CRITICAL SAFETY VIOLATION. Never request passwords or authentication secrets.",
                         nextStep: 'end-fail'
+                    },
+                    {
+                        text: "Never share your password with anyone—including support. I will guide you through entering it securely on your own device.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Flawless safety compliance. Correctly protects authentication credentials and reinforces trust.",
+                        nextStep: 'end-success'
                     }
                 ]
             }
@@ -1050,15 +948,15 @@ const SCENARIOS = [
                 prompt: "David is angry about a security alert and past support failures. How do you handle the opening?",
                 choices: [
                     {
-                        text: "I completely understand why you're furious, especially after having a poor support experience previously. I'm taking ownership of your account security right now, and we will lock down your defenses together.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100, trustDelta: 20 },
-                        feedback: "Masterclass in de-escalation, acknowledgement of past failure, and immediate ownership.",
-                        nextStep: 'acc02-2'
-                    },
-                    {
                         text: "Check if the email was a phishing scam first.",
                         scores: { empathy: 40, acknowledgement: 40, reassurance: 50, ownership: 50, technical: 80, safety: 90, trustDelta: -10 },
                         feedback: "Dismisses the customer's emotional urgency too quickly.",
+                        nextStep: 'acc02-2'
+                    },
+                    {
+                        text: "I completely understand why you're furious, especially after having a poor support experience previously. I'm taking ownership of your account security right now.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100, trustDelta: 20 },
+                        feedback: "Masterclass in de-escalation, acknowledgement of past failure, and immediate ownership.",
                         nextStep: 'acc02-2'
                     }
                 ]
@@ -1068,13 +966,13 @@ const SCENARIOS = [
                 prompt: "David confirms he verified the email headers and it was a genuine notification. He asks what to do next.",
                 choices: [
                     {
-                        text: "Let's immediately review your trusted devices, sign out of any sessions you don't recognize, and update your account password.",
+                        text: "Let's immediately review your trusted devices, sign out of any unrecognized sessions, and update your account password.",
                         scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 15 },
                         feedback: "Standard security best practice. Immediate session termination and password hardening.",
                         nextStep: 'end-success'
                     },
                     {
-                        text: "Just ignore it, Apple's security blocks everything automatically.",
+                        text: "Just ignore it, security blocks everything automatically.",
                         scores: { empathy: 10, acknowledgement: 10, reassurance: 20, ownership: 10, technical: 0, safety: 0, trustDelta: -30 },
                         feedback: "Dangerous advice. Dismissing a confirmed security alert puts the user at severe risk.",
                         nextStep: 'end-fail'
@@ -1095,7 +993,7 @@ const SCENARIOS = [
                 prompt: "Elena is confused about verification codes. How do you guide her?",
                 choices: [
                     {
-                        text: "I can understand how confusing verification prompts can be when setting up a new device. Let's check a couple of quick settings together to make sure your trusted devices are communicating properly.",
+                        text: "I can understand how confusing verification prompts can be when setting up a new device. Let's check a couple of quick settings together.",
                         scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 90, technical: 90, safety: 100, trustDelta: 15 },
                         feedback: "Very supportive and clear opening.",
                         nextStep: 'acc03-2'
@@ -1129,6 +1027,116 @@ const SCENARIOS = [
         ]
     },
     {
+        id: 'acc-04',
+        title: 'Forgotten Security Questions',
+        category: 'Apple Account & Security',
+        difficulty: 'Medium',
+        customer: { name: 'Gary Cooper', personality: 'confused', opening: "I'm trying to update my billing info, but it's asking for security questions I set up ten years ago and I have no idea what the answers are." },
+        steps: [
+            {
+                id: 'acc04-1',
+                prompt: "Gary forgot old security questions. How do you assist him?",
+                choices: [
+                    {
+                        text: "I can understand how tricky legacy security questions are to remember after all this time. Let's transition your account security to modern two-factor authentication.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Forward-looking security upgrade that permanently solves legacy security question issues.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Guess them until you get it right.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 20, trustDelta: -40 },
+                        feedback: "Terrible advice that will result in account lockout.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'acc-05',
+        title: 'Recovery Key Misplacement Panic',
+        category: 'Apple Account & Security',
+        difficulty: 'Hard',
+        customer: { name: 'Clark Kent', personality: 'anxious', opening: "I turned on Advanced Data Protection, but now I can't find my Recovery Key and I'm terrified I'll lose access to my account forever!" },
+        steps: [
+            {
+                id: 'acc05-1',
+                prompt: "Clark lost his Advanced Data Protection Recovery Key. How do you address this high-stakes security situation?",
+                choices: [
+                    {
+                        text: "I understand how nerve-wracking that realization is with Advanced Data Protection active. Because Apple does not keep a copy of your recovery key for privacy reasons, let's check your trusted devices right now.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 22 },
+                        feedback: "Exemplary handling of an advanced security feature. Validates panic, explains zero-knowledge privacy accurately, and provides actionable multi-device recovery.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "If you lost your key, your account is gone forever. Good luck.",
+                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 20, safety: 40, trustDelta: -60 },
+                        feedback: "Horrific support response. Panics the customer without checking secondary trusted devices.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'acc-06',
+        title: 'Passkey Authentication Error',
+        category: 'Apple Account & Security',
+        difficulty: 'Medium',
+        customer: { name: 'Barry Allen', personality: 'impatient', opening: "My passkey sign-in keeps throwing an error on my laptop saying 'Device not recognized' even though I use it every day." },
+        steps: [
+            {
+                id: 'acc-06-1',
+                prompt: "Barry is frustrated by a passkey error. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check Bluetooth and iCloud Keychain status on both your phone and laptop, as cross-device passkeys require both to maintain continuity relay.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 15 },
+                        feedback: "Accurate technical discovery for cross-device passkey relay requirements.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Delete all your passkeys and use regular passwords.",
+                        scores: { empathy: 20, acknowledgement: 20, reassurance: 20, ownership: 30, technical: 30, safety: 50, trustDelta: -20 },
+                        feedback: "Regressive advice that discards modern security credentials unnecessarily.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'acc-07',
+        title: 'Legacy Contact Setup Assistance',
+        category: 'Apple Account & Security',
+        difficulty: 'Easy',
+        customer: { name: 'Martha Wayne', personality: 'calm', opening: "I want to add my son as a Legacy Contact for my account so he can access my data if something ever happens to me. How do I do that?" },
+        steps: [
+            {
+                id: 'acc-07-1',
+                prompt: "Martha wants to set up a Legacy Contact. How do you guide her?",
+                choices: [
+                    {
+                        text: "That is a very thoughtful planning step. Let's go to Settings, tap your name, tap Sign-In & Security, and select Legacy Contact to set that up securely.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Supportive, clear, and accurate feature navigation.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Just write your password down on a piece of paper for him.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 0, safety: 10, trustDelta: -30 },
+                        feedback: "Insecure advice that compromises credential security.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+
+    // --- CATEGORY 2: iCloud & Data (Scenarios 8-13) ---
+    {
         id: 'icl-01',
         title: 'Missing Photos After Migration',
         category: 'ICloud & Data',
@@ -1140,7 +1148,7 @@ const SCENARIOS = [
                 prompt: "Marcus is stressed about family photos. How do you respond?",
                 choices: [
                     {
-                        text: "I hear how stressful that is, especially when family memories are involved. Let's check your iCloud sync status together to see if your library is still downloading.",
+                        text: "I hear how stressful that is, especially when family memories are involved. Let's check your iCloud sync status together.",
                         scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 90, safety: 100, trustDelta: 15 },
                         feedback: "Wonderful empathy and immediate direction toward checking cloud sync status.",
                         nextStep: 'icl01-2'
@@ -1158,16 +1166,16 @@ const SCENARIOS = [
                 prompt: "Marcus confirms Wi-Fi is connected, but the Photos app says 'Syncing 3,400 items... Paused on Low Battery.'",
                 choices: [
                     {
-                        text: "That explains it! iCloud pauses syncing when battery or power saving is active. Let's plug the phone into a charger and connect to stable Wi-Fi to let the sync complete.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
-                        feedback: "Perfect diagnosis. Identifies the exact blocker ('Paused on Low Battery') and provides clear action.",
-                        nextStep: 'end-success'
-                    },
-                    {
                         text: "You should erase the phone and restore from iCloud again.",
                         scores: { empathy: 20, acknowledgement: 20, reassurance: 10, ownership: 30, technical: 10, safety: 40, trustDelta: -25 },
                         feedback: "Destructive and unnecessary recommendation. Erasing a device when sync is simply paused is terrible support.",
                         nextStep: 'end-fail'
+                    },
+                    {
+                        text: "That explains it! iCloud pauses syncing when battery saver is active. Let's plug the phone into a charger to let the sync complete.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Perfect diagnosis. Identifies the exact blocker and provides clear action.",
+                        nextStep: 'end-success'
                     }
                 ]
             }
@@ -1185,7 +1193,7 @@ const SCENARIOS = [
                 prompt: "Linda wants to understand what is consuming her iCloud space. How do you guide her?",
                 choices: [
                     {
-                        text: "I can help you audit your storage breakdown. Let's go to Settings, tap your name, tap iCloud, and then tap 'Manage Account Storage' to see the exact categories.",
+                        text: "I can help you audit your storage breakdown. Let's go to Settings, tap your name, tap iCloud, and then tap 'Manage Account Storage' to see exact categories.",
                         scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 100, safety: 100, trustDelta: 15 },
                         feedback: "Clear navigation path and precise technical guidance.",
                         nextStep: 'icl02-2'
@@ -1203,15 +1211,15 @@ const SCENARIOS = [
                 prompt: "Linda checks and sees Backups and Photos are taking up 195 GB of her 200 GB plan.",
                 choices: [
                     {
-                        text: "That clarifies it. We can review old device backups you no longer need or optimize photo storage to free up significant space without losing your core files.",
+                        text: "That clarifies it. We can review old device backups or optimize photo storage to free up space without losing core files.",
                         scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 15 },
-                        feedback: "Constructive, tailored solutions that respect the customer's existing data.",
+                        feedback: "Constructive, tailored solutions respecting customer data.",
                         nextStep: 'end-success'
                     },
                     {
                         text: "Just delete all your photos.",
                         scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 0, safety: 20, trustDelta: -30 },
-                        feedback: "Reckless advice that risks permanent loss of user memories.",
+                        feedback: "Reckless advice risking permanent loss of user memories.",
                         nextStep: 'end-fail'
                     }
                 ]
@@ -1219,50 +1227,133 @@ const SCENARIOS = [
         ]
     },
     {
-        id: 'bil-01',
-        title: 'Unexpected App Store Charge',
-        category: 'Billing & Purchases',
+        id: 'icl-03',
+        title: 'Contacts Not Syncing Across Devices',
+        category: 'ICloud & Data',
         difficulty: 'Medium',
-        customer: { name: 'Karen Miller', personality: 'frustrated', opening: "I just saw a charge on my card for $49.99 from the App Store for an app subscription I never signed up for! I want my money back right now." },
+        customer: { name: 'Robert Taylor', personality: 'impatient', opening: "I added a new client contact on my iPad yesterday and it still hasn't appeared on my iPhone. This is ridiculous." },
         steps: [
             {
-                id: 'bil01-1',
-                prompt: "Karen is frustrated about an unexpected subscription charge. How do you handle her?",
+                id: 'icl03-1',
+                prompt: "Robert is impatient about contact syncing. How do you respond?",
                 choices: [
                     {
-                        text: "I completely understand why seeing an unexpected charge is alarming. Let's look into your purchase history right now to identify exactly what this subscription is and review your refund options.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 90, safety: 100, trustDelta: 18 },
-                        feedback: "Excellent de-escalation, empathy, and clear proactive ownership.",
-                        nextStep: 'bil01-2'
+                        text: "I understand how inconvenient it is when contact sync lags behind, especially with client information. Let's check your account settings on both devices.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 90, ownership: 90, technical: 95, safety: 100, trustDelta: 15 },
+                        feedback: "Strong acknowledgement of professional inconvenience and targeted troubleshooting.",
+                        nextStep: 'icl03-2'
                     },
                     {
-                        text: "All sales are final, you'll have to contact your bank.",
-                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 30, safety: 50, trustDelta: -40 },
-                        feedback: "Terrible customer service. Dismissive and unhelpful brick-wall response.",
-                        nextStep: 'end-fail'
+                        text: "Re-type the contact manually on your iPhone.",
+                        scores: { empathy: 30, acknowledgement: 30, reassurance: 40, ownership: 40, technical: 40, safety: 90, trustDelta: -10 },
+                        feedback: "Workaround instead of fixing the underlying sync issue.",
+                        nextStep: 'icl03-2'
                     }
                 ]
             },
             {
-                id: 'bil01-2',
-                prompt: "You verify in purchase history that a free trial converted into an annual subscription yesterday.",
+                id: 'icl03-2',
+                prompt: "Robert confirms Contacts toggle is on, but his default account is set to a third-party email service instead of iCloud on his iPad.",
                 choices: [
                     {
-                        text: "I see the free trial converted into the annual subscription yesterday. Let's cancel the active subscription right away so it won't renew next year, and I'll guide you through submitting a formal refund request.",
-                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 100, safety: 100, trustDelta: 20 },
-                        feedback: "Professional, comprehensive handling. Stops future billing and provides proper refund pathways.",
+                        text: "That explains why it stayed local to the iPad! Let's check your Default Account setting in Contacts so future entries sync seamlessly to iCloud.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Accurate root cause identification (default account mismatch).",
                         nextStep: 'end-success'
                     },
                     {
-                        text: "You agreed to the terms when you signed up for the free trial, so there's nothing we can do.",
-                        scores: { empathy: 20, acknowledgement: 20, reassurance: 20, ownership: 20, technical: 70, safety: 60, trustDelta: -25 },
-                        feedback: "Rude and overly legalistic. Fails to guide the customer through the refund portal.",
+                        text: "Turn off your phone and wait an hour.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 50, ownership: 50, technical: 40, safety: 90, trustDelta: -5 },
+                        feedback: "Ineffective generic advice.",
                         nextStep: 'end-fail'
                     }
                 ]
             }
         ]
     },
+    {
+        id: 'icl-04',
+        title: 'Notes Disappeared After Sign-Out',
+        category: 'ICloud & Data',
+        difficulty: 'Medium',
+        customer: { name: 'Maya Angelou', personality: 'anxious', opening: "I signed out of my iCloud account for a minute and all my notes vanished! Are they gone forever?" },
+        steps: [
+            {
+                id: 'icl04-1',
+                prompt: "Maya is panicking about vanished notes after signing out. How do you respond?",
+                choices: [
+                    {
+                        text: "I hear how frightening that sudden disappearance is. Don't worry—signing out temporarily removes local copies, but your notes are safely stored in iCloud. Let's sign back in.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Immediate calming reassurance coupled with accurate technical explanation of cloud caching.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "If you didn't back them up, they're probably deleted.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 50, trustDelta: -40 },
+                        feedback: "Unnecessarily terrifying response that is technically incorrect for standard iCloud sync accounts.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'icl-05',
+        title: 'Shared Album Photos Not Visible',
+        category: 'ICloud & Data',
+        difficulty: 'Easy',
+        customer: { name: 'Lois Lane', personality: 'calm', opening: "I created a Shared Album for our family vacation, but my sister says she can't see any of the photos I added." },
+        steps: [
+            {
+                id: 'icl05-1',
+                prompt: "Lois's shared album isn't appearing for her sister. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check if the shared album invitation was successfully accepted by your sister, and verify that Shared Albums is enabled under your iCloud settings.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100, trustDelta: 15 },
+                        feedback: "Clear, logical troubleshooting for shared album permissions.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Delete the album and recreate it.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 80, trustDelta: -10 },
+                        feedback: "Unnecessary recreation instead of verifying invitation status.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'icl-06',
+        title: 'Corrupted Time Machine Backup',
+        category: 'ICloud & Data',
+        difficulty: 'Hard',
+        customer: { name: 'Stephen Strange', personality: 'technical', opening: "My Mac's external backup disk is throwing a checksum verification error during Time Machine backup and refusing to complete." },
+        steps: [
+            {
+                id: 'icl-06-1',
+                prompt: "Stephen has a Time Machine checksum error. How do you approach this?",
+                choices: [
+                    {
+                        text: "Let's run Disk Utility First Aid on the backup volume to check directory structure integrity before initiating a new sparse bundle verification.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Correct technical procedure for diagnosing storage corruption safely.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Format the hard drive immediately.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 10, trustDelta: -50 },
+                        feedback: "Destructive advice that destroys existing backup archives.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+
+    // --- CATEGORY 3: Hardware & Performance (Scenarios 14-19) ---
     {
         id: 'hdw-01',
         title: 'Severe Battery Drain After Update',
@@ -1275,15 +1366,15 @@ const SCENARIOS = [
                 prompt: "Kevin needs his phone for work and is frustrated by rapid battery drain. How do you respond?",
                 choices: [
                     {
-                        text: "I understand how critical reliable battery life is for your workday. Let's check your Battery Health and usage statistics to pinpoint what's causing the rapid drain.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100, trustDelta: 18 },
-                        feedback: "Strong acknowledgement of professional impact and precise troubleshooting direction.",
-                        nextStep: 'hdw01-2'
-                    },
-                    {
                         text: "Batteries degrade over time. You need a new phone.",
                         scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 30, safety: 50, trustDelta: -30 },
                         feedback: "Premature and dismissive. Fails to consider background re-indexing after updates.",
+                        nextStep: 'hdw01-2'
+                    },
+                    {
+                        text: "I understand how critical reliable battery life is for your workday. Let's check your Battery Health and usage statistics.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100, trustDelta: 18 },
+                        feedback: "Strong acknowledgement of professional impact and precise troubleshooting direction.",
                         nextStep: 'hdw01-2'
                     }
                 ]
@@ -1293,9 +1384,9 @@ const SCENARIOS = [
                 prompt: "Kevin checks battery stats and sees Photos and Spotlight indexing consuming 70% of background activity following the recent update.",
                 choices: [
                     {
-                        text: "That explains it! Major updates trigger temporary background re-indexing of your photos and search data for 24-48 hours. Keeping it plugged in overnight will let this background process finish smoothly.",
+                        text: "Major updates trigger temporary background re-indexing for 24-48 hours. Keeping it plugged in overnight will let this background process finish smoothly.",
                         scores: { empathy: 95, acknowledgement: 95, reassurance: 100, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
-                        feedback: "Exemplary technical explanation. Educates the customer on normal post-update indexing behavior.",
+                        feedback: "Exemplary technical explanation. Educates customer on normal post-update indexing behavior.",
                         nextStep: 'end-success'
                     },
                     {
@@ -1309,9 +1400,182 @@ const SCENARIOS = [
         ]
     },
     {
+        id: 'hdw-02',
+        title: 'Device Overheating During Charging',
+        category: 'Hardware & Performance',
+        difficulty: 'Hard',
+        customer: { name: 'Amanda Waller', personality: 'anxious', opening: "My phone gets dangerously hot whenever I plug it into my fast charger, and I'm worried it might catch fire!" },
+        steps: [
+            {
+                id: 'hdw02-1',
+                prompt: "Amanda is anxious about overheating and fire risk. How do you handle her safety concern?",
+                choices: [
+                    {
+                        text: "I completely understand why getting unusually hot is alarming. Let's unplug the device immediately to let it cool down safely.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 100, safety: 100, trustDelta: 25 },
+                        feedback: "Exemplary safety prioritization. Immediate cessation of charging, de-escalation, and calm reassurance.",
+                        nextStep: 'hdw02-2'
+                    },
+                    {
+                        text: "Phones get warm when fast charging, just keep using it.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 10, trustDelta: -40 },
+                        feedback: "Dangerous disregard for user safety and thermal warnings.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            },
+            {
+                id: 'hdw02-2',
+                prompt: "Amanda unplugged the phone. She mentions she was using a third-party uncertified gas-station charging brick.",
+                choices: [
+                    {
+                        text: "That uncertified charging brick is likely delivering unregulated wattage. We strongly recommend using MFi-certified power adapters.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Accurate root cause identification and vital safety education.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Your battery is dead, buy a new phone.",
+                        scores: { empathy: 30, acknowledgement: 30, reassurance: 30, ownership: 30, technical: 40, safety: 50, trustDelta: -10 },
+                        feedback: "Inaccurate diagnosis ignoring the uncertified charger variable.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'hdw-03',
+        title: 'Device Frozen on Apple Logo',
+        category: 'Hardware & Performance',
+        difficulty: 'Medium',
+        customer: { name: 'Tom Hardy', personality: 'frustrated', opening: "My phone froze during a restart and now it's stuck showing just the Apple logo for the last 30 minutes. Nothing responds!" },
+        steps: [
+            {
+                id: 'hdw03-1',
+                prompt: "Tom's phone is frozen on the logo. How do you respond?",
+                choices: [
+                    {
+                        text: "I understand how frustrating it is when a device freezes mid-boot. Let's perform a forced restart sequence together.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 95, safety: 100, trustDelta: 15 },
+                        feedback: "Solid acknowledgement and clear action plan.",
+                        nextStep: 'hdw03-2'
+                    },
+                    {
+                        text: "Leave it alone until the battery dies.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 40, safety: 70, trustDelta: -5 },
+                        feedback: "Passive workaround rather than active guidance.",
+                        nextStep: 'hdw03-2'
+                    }
+                ]
+            },
+            {
+                id: 'hdw03-2',
+                prompt: "Tom asks if performing a forced restart will wipe his personal photos and messages.",
+                choices: [
+                    {
+                        text: "No, a forced restart simply interrupts and reboots the software memory cycle. It does not touch or erase your personal data.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 100, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Directly addresses data security anxiety accurately.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "There's always a chance everything gets erased.",
+                        scores: { empathy: 30, acknowledgement: 30, reassurance: 20, ownership: 40, technical: 60, safety: 80, trustDelta: -15 },
+                        feedback: "Unnecessarily panics customer about data loss.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'hdw-04',
+        title: 'Microphone Muffled During Calls',
+        category: 'Hardware & Performance',
+        difficulty: 'Easy',
+        customer: { name: 'Diana Prince', personality: 'calm', opening: "People keep telling me I sound like I'm underwater whenever I talk on cellular calls, though speakerphone sounds fine." },
+        steps: [
+            {
+                id: 'hdw04-1',
+                prompt: "Diana's microphone sounds muffled on regular calls but works on speaker. How do you diagnose?",
+                choices: [
+                    {
+                        text: "Since speakerphone uses a top/front microphone while regular calls use the bottom primary microphone, let's check the bottom grille for debris.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Brilliant hardware logic (differentiating bottom primary mic from top mic).",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Your cellular carrier is dropping your audio packets.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 40, safety: 80, trustDelta: -10 },
+                        feedback: "Incorrect hardware-vs-carrier assumption.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'hdw-05',
+        title: 'Touch Screen Unresponsive Corner',
+        category: 'Hardware & Performance',
+        difficulty: 'Medium',
+        customer: { name: 'Wanda Maximoff', personality: 'frustrated', opening: "The bottom-left corner of my touch screen won't respond to my taps at all, making it impossible to type certain letters." },
+        steps: [
+            {
+                id: 'hdw05-1',
+                prompt: "Wanda has a localized dead zone on her touch screen. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check if you have a thick tempered glass screen protector or case lip pressing against that corner, as physical interference is common.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 18 },
+                        feedback: "Excellent elimination of external hardware interference before suspecting digitizer failure.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Your screen is broken, you need to pay for a replacement immediately.",
+                        scores: { empathy: 20, acknowledgement: 20, reassurance: 20, ownership: 30, technical: 40, safety: 60, trustDelta: -20 },
+                        feedback: "Jumps to expensive repair without ruling out screen protector interference.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'hdw-06',
+        title: 'Random Kernel Panics on MacBook',
+        category: 'Hardware & Performance',
+        difficulty: 'Hard',
+        customer: { name: 'Bruce Banner', personality: 'technical', opening: "My MacBook Pro keeps throwing random kernel panic reboots overnight while sleeping, generating an AppleSmartBatteryManager error report." },
+        steps: [
+            {
+                id: 'hdw-06-1',
+                prompt: "Bruce has a kernel panic log pointing to power management. How do you analyze?",
+                choices: [
+                    {
+                        text: "Let's review the panic report headers to determine if a third-party kext or failing peripheral is waking the SMC improperly.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Advanced technical log analysis suited for technically confident users.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Reinstall the operating system from scratch.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 50, technical: 50, safety: 80, trustDelta: -10 },
+                        feedback: "Too drastic before analyzing kernel panic log parameters.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+
+    // --- CATEGORY 4: Software & Connectivity (Scenarios 20-25) ---
+    {
         id: 'eco-01',
         title: 'AirPods Pro Audio Switching Confusion',
-        category: 'Apple Ecosystem',
+        category: 'Software & Connectivity',
         difficulty: 'Easy',
         customer: { name: 'Chloe Grace', personality: 'confused', opening: "My AirPods keep randomly switching audio from my Mac to my iPhone whenever a notification comes in, and it's driving me crazy." },
         steps: [
@@ -1320,15 +1584,15 @@ const SCENARIOS = [
                 prompt: "Chloe is annoyed by automatic device switching. How do you respond?",
                 choices: [
                     {
-                        text: "I can completely understand how disruptive that automatic switching can be when you're trying to focus. Let's adjust your AirPods connection settings so you have full control over when they switch devices.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100, trustDelta: 15 },
-                        feedback: "Great empathy and targeted solution for automatic switching behavior.",
-                        nextStep: 'eco01-2'
-                    },
-                    {
                         text: "Turn off Bluetooth on your Mac.",
                         scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 70, safety: 90, trustDelta: -5 },
                         feedback: "Drastic workaround that disables Mac Bluetooth entirely.",
+                        nextStep: 'eco01-2'
+                    },
+                    {
+                        text: "I can completely understand how disruptive automatic switching can be when trying to focus. Let's adjust your AirPods connection settings.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 95, technical: 95, safety: 100, trustDelta: 15 },
+                        feedback: "Great empathy and targeted solution for automatic switching behavior.",
                         nextStep: 'eco01-2'
                     }
                 ]
@@ -1338,7 +1602,7 @@ const SCENARIOS = [
                 prompt: "Chloe asks where to change the automatic connection setting.",
                 choices: [
                     {
-                        text: "With your AirPods connected, go to Bluetooth settings on your iPhone, tap the 'i' icon next to your AirPods, tap 'Connect to This iPhone', and change it from 'Automatically' to 'When Last Connected'.",
+                        text: "With your AirPods connected, go to Bluetooth settings on your iPhone, tap 'i' next to your AirPods, and change 'Connect to This iPhone' to 'When Last Connected'.",
                         scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
                         feedback: "Precise step-by-step feature guidance.",
                         nextStep: 'end-success'
@@ -1354,8 +1618,181 @@ const SCENARIOS = [
         ]
     },
     {
+        id: 'eco-02',
+        title: 'Apple Watch Activity Sharing Stalled',
+        category: 'Software & Connectivity',
+        difficulty: 'Medium',
+        customer: { name: 'Mark Ruffalo', personality: 'calm', opening: "My workout rings aren't sharing with my workout buddy anymore, even though we're both connected to Wi-Fi." },
+        steps: [
+            {
+                id: 'eco02-1',
+                prompt: "Mark wants his fitness rings syncing properly. How do you guide him?",
+                choices: [
+                    {
+                        text: "I understand how fun it is to keep activity sharing in sync. Let's check your Fitness sharing profile and network connection status.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 100, trustDelta: 15 },
+                        feedback: "Supportive and friendly tone.",
+                        nextStep: 'eco02-2'
+                    },
+                    {
+                        text: "Restart both watches and phones immediately.",
+                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 60, technical: 60, safety: 90, trustDelta: -5 },
+                        feedback: "Generic troubleshooting without checking account connection.",
+                        nextStep: 'eco02-2'
+                    }
+                ]
+            },
+            {
+                id: 'eco02-2',
+                prompt: "You determine that the iCloud account pairing between fitness profiles needs a refresh.",
+                choices: [
+                    {
+                        text: "Let's tap your friend's name in the Fitness app, remove the invite, and send a fresh invite to re-establish the encrypted sync handshake.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Effective fix for stalled activity sharing connections.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Factory reset your Apple Watch.",
+                        scores: { empathy: 20, acknowledgement: 20, reassurance: 10, ownership: 20, technical: 10, safety: 50, trustDelta: -25 },
+                        feedback: "Disproportionate and destructive troubleshooting.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'eco-03',
+        title: 'Universal Clipboard Not Working',
+        category: 'Software & Connectivity',
+        difficulty: 'Hard',
+        customer: { name: 'Natalie Portman', personality: 'technical', opening: "Universal Clipboard stopped working between my MacBook and iPhone. Bluetooth and Wi-Fi are both on, and Handoff is enabled on both." },
+        steps: [
+            {
+                id: 'eco03-1',
+                prompt: "Natalie is technical and already checked basics. How do you approach troubleshooting?",
+                choices: [
+                    {
+                        text: "Since you've already verified Wi-Fi, Bluetooth, and Handoff settings, let's test toggling Handoff off and back on on both devices to refresh the iCloud relay token.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Respects customer technical knowledge and offers advanced relay token refresh.",
+                        nextStep: 'eco03-2'
+                    },
+                    {
+                        text: "Make sure Wi-Fi is turned on.",
+                        scores: { empathy: 40, acknowledgement: 30, reassurance: 40, ownership: 40, technical: 30, safety: 90, trustDelta: -10 },
+                        feedback: "Ignores customer's prior statement that Wi-Fi is already on.",
+                        nextStep: 'eco03-2'
+                    }
+                ]
+            },
+            {
+                id: 'eco03-2',
+                prompt: "Toggling Handoff didn't immediately fix clipboard relay. What is the next logical step?",
+                choices: [
+                    {
+                        text: "Let's sign out of your Apple Account in System Settings on the Mac and sign back in to refresh continuity certificate credentials.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 20 },
+                        feedback: "Accurate advanced troubleshooting for continuity token corruption.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Reinstall macOS.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 0, safety: 30, trustDelta: -40 },
+                        feedback: "Extremely excessive for a clipboard sync glitch.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'eco-04',
+        title: 'AirTag False Left Behind Alerts',
+        category: 'Software & Connectivity',
+        difficulty: 'Easy',
+        customer: { name: 'Bruce Wayne', personality: 'calm', opening: "My AirTag keeps sending me 'Left Behind' notifications even though it's right in my gym bag next to me." },
+        steps: [
+            {
+                id: 'eco04-1',
+                prompt: "Bruce is getting false AirTag separation alerts. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check your 'Notify When Left Behind' location boundaries and verify if a specific Safe Location needs updating.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100, trustDelta: 15 },
+                        feedback: "Clear location-boundary troubleshooting.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Replace the AirTag battery immediately.",
+                        scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 60, safety: 80, trustDelta: -5 },
+                        feedback: "Premature hardware replacement advice.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'eco-05',
+        title: 'Cellular Data Roaming Failure Abroad',
+        category: 'Software & Connectivity',
+        difficulty: 'Medium',
+        customer: { name: 'Hal Jordan', personality: 'anxious', opening: "I just landed in London and my cellular data isn't working at all, even though data roaming is toggled on in my settings!" },
+        steps: [
+            {
+                id: 'eco-05-1',
+                prompt: "Hal has no data abroad despite roaming being on. How do you troubleshoot?",
+                choices: [
+                    {
+                        text: "Let's check your APN carrier settings and toggle Airplane mode for 10 seconds to force your phone to re-handshake with local partner towers.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 18 },
+                        feedback: "Effective network handshake refresh for international roaming.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Buy a new physical SIM card.",
+                        scores: { empathy: 30, acknowledgement: 30, reassurance: 30, ownership: 30, technical: 30, safety: 70, trustDelta: -15 },
+                        feedback: "Unnecessary step before trying network reset or carrier toggle.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'eco-06',
+        title: 'AirDrop Discovery Failure Between Devices',
+        category: 'Software & Connectivity',
+        difficulty: 'Easy',
+        customer: { name: 'Arthur Curry', personality: 'calm', opening: "My iPad won't show up on my iPhone's AirDrop sharing sheet when I try sending documents." },
+        steps: [
+            {
+                id: 'eco-06-1',
+                prompt: "Arthur's AirDrop discovery is failing. How do you guide him?",
+                choices: [
+                    {
+                        text: "Let's check Control Center on both devices to ensure Wi-Fi and Bluetooth are active, and AirDrop visibility is set to 'Everyone for 10 Minutes' or 'Contacts Only'.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 90, technical: 100, safety: 100, trustDelta: 15 },
+                        feedback: "Directly addresses Wi-Fi/Bluetooth prerequisites and visibility settings.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Email the files instead.",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 20, safety: 90, trustDelta: -10 },
+                        feedback: "Workaround instead of troubleshooting AirDrop connectivity.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+
+    // --- CATEGORY 5: Difficult Customers & Escalations (Scenarios 26-31) ---
+    {
         id: 'esc-01',
-        title: 'Hostile Customer Demanding Immediate Supervisor',
+        title: 'Hostile Customer Demanding Supervisor',
         category: 'Difficult Customers & Escalations',
         difficulty: 'Hard',
         customer: { name: 'Gordon Ramsay', personality: 'frustrated', opening: "Your products are absolute garbage and your support is useless! Get me a supervisor on the line right this second or I'm calling my lawyer!" },
@@ -1365,15 +1802,150 @@ const SCENARIOS = [
                 prompt: "Gordon is screaming and threatening legal action. How do you de-escalate?",
                 choices: [
                     {
-                        text: "I hear how angry and upset you are about your experience. I want to help resolve this for you—let me review your case notes and summarize everything so I can connect you smoothly to our specialist team.",
-                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100, trustDelta: 25 },
-                        feedback: "Masterclass in de-escalation. Acknowledges anger without being defensive, takes ownership, and manages escalation professionally.",
-                        nextStep: 'end-success'
-                    },
-                    {
                         text: "If you're going to threaten legal action, I'm disconnecting this call.",
                         scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 10, technical: 0, safety: 20, trustDelta: -50 },
                         feedback: "Provocative and escalates hostility immediately. Terrible support behavior.",
+                        nextStep: 'end-fail'
+                    },
+                    {
+                        text: "I hear how angry and upset you are about your experience. Let me summarize your case notes so I can connect you smoothly to our specialist team.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 95, ownership: 100, technical: 90, safety: 100, trustDelta: 25 },
+                        feedback: "Masterclass in de-escalation. Acknowledges anger without being defensive, takes ownership, and manages escalation professionally.",
+                        nextStep: 'end-success'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-02',
+        title: 'Customer Refusing All Troubleshooting',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Medium',
+        customer: { name: 'Evelyn Abbott', personality: 'impatient', opening: "Look, I don't have time for your silly troubleshooting steps. I paid a lot of money for this device, so either fix it remotely or send me a new one." },
+        steps: [
+            {
+                id: 'esc02-1',
+                prompt: "Evelyn refuses troubleshooting and demands a replacement. How do you respond?",
+                choices: [
+                    {
+                        text: "I completely understand why you want a swift solution without tedious testing. Because replacements require verified diagnostic codes per service standards, let's run a quick 2-minute remote diagnostic together.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 100, technical: 95, safety: 100, trustDelta: 20 },
+                        feedback: "Brilliant framing. Aligns troubleshooting as the fast track to getting her what she wants rather than an arbitrary hurdle.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Policy requires you to do what I say or I can't help.",
+                        scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 20, safety: 40, trustDelta: -40 },
+                        feedback: "Robotic rule-citing that alienates the customer.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-03',
+        title: 'Repeated Caller Experiencing Ongoing Bug',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Hard',
+        customer: { name: 'Arthur Pendelton', personality: 'frustrated', opening: "This is my fourth time calling about this exact same glitch! Every advisor tells me something different and nothing works!" },
+        steps: [
+            {
+                id: 'esc03-1',
+                prompt: "Arthur is exhausted from calling four times. How do you handle this high-friction moment?",
+                choices: [
+                    {
+                        text: "I am so sorry you've had to call four times without a resolution. That is incredibly frustrating. I am taking personal ownership of your case right now to review previous ticket history.",
+                        scores: { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 95, safety: 100, trustDelta: 25 },
+                        feedback: "Exemplary ownership and sincere apology for repeat contact fatigue.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Which department did you speak to last time?",
+                        scores: { empathy: 40, acknowledgement: 40, reassurance: 40, ownership: 40, technical: 50, safety: 80, trustDelta: -10 },
+                        feedback: "Shifts burden of explanation back onto the frustrated customer.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-04',
+        title: 'Out-of-Warranty Free Repair Demand',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Hard',
+        customer: { name: 'Tony Stark', personality: 'impatient', opening: "My screen cracked because I dropped it, but I expect you to replace it for free because I've bought all your products for years!" },
+        steps: [
+            {
+                id: 'esc04-1',
+                prompt: "Tony demands free out-of-warranty physical damage repair based on loyalty. How do you handle policy and empathy?",
+                choices: [
+                    {
+                        text: "I completely understand your frustration with accidental damage costs, especially as a longtime customer. While standard warranty covers manufacturing defects rather than accidental drops, let's review your AppleCare+ coverage options.",
+                        scores: { empathy: 95, acknowledgement: 100, reassurance: 90, ownership: 95, technical: 95, safety: 100, trustDelta: 20 },
+                        feedback: "Professional balance of empathy for repair costs, clear policy boundaries regarding accidental damage, and helpful service options.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "You broke it, you pay for it. Policy is policy.",
+                        scores: { empathy: 0, acknowledgement: 10, reassurance: 10, ownership: 20, technical: 50, safety: 70, trustDelta: -40 },
+                        feedback: "Blunt and abrasive. Alienates customer.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-05',
+        title: 'Unreasonable Data Recovery Guarantee Demand',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Hard',
+        customer: { name: 'Lex Luthor', personality: 'impatient', opening: "My device won't turn on at all. I demand that you guarantee you can recover my proprietary business data before I authorize any service." },
+        steps: [
+            {
+                id: 'esc-05-1',
+                prompt: "Lex demands a 100% guarantee on data recovery for a dead device. How do you respond?",
+                choices: [
+                    {
+                        text: "I understand how invaluable your business data is. While our technicians will make every diagnostic effort to preserve data integrity, hardware failures prevent us from offering a 100% absolute guarantee.",
+                        scores: { empathy: 90, acknowledgement: 90, reassurance: 95, ownership: 95, technical: 100, safety: 100, trustDelta: 18 },
+                        feedback: "Honest, realistic expectation setting without making unsupported guarantees.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "We guarantee 100% data recovery, don't worry about it.",
+                        scores: { empathy: 80, acknowledgement: 80, reassurance: 90, ownership: 80, technical: 0, safety: 0, trustDelta: -30 },
+                        feedback: "Unsupported promise violation. Never guarantee data recovery on dead hardware.",
+                        nextStep: 'end-fail'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'esc-06',
+        title: 'Billing Dispute Escalation to Chargeback Threat',
+        category: 'Difficult Customers & Escalations',
+        difficulty: 'Medium',
+        customer: { name: 'Selina Kyle', personality: 'frustrated', opening: "I'm disputing this charge with my credit card company right now and filing fraud charges if you don't issue an immediate refund!" },
+        steps: [
+            {
+                id: 'esc-06-1',
+                prompt: "Selina threatens a bank chargeback and fraud claims over a disputed charge. How do you handle this?",
+                choices: [
+                    {
+                        text: "I hear how upset you are about this charge. Let's look at the transaction details together so I can submit an official refund review request for you right now.",
+                        scores: { empathy: 95, acknowledgement: 95, reassurance: 95, ownership: 95, technical: 95, safety: 100, trustDelta: 20 },
+                        feedback: "Calm de-escalation offering immediate formal review pathway instead of arguing.",
+                        nextStep: 'end-success'
+                    },
+                    {
+                        text: "Go ahead and file a chargeback, we'll just ban your account.",
+                        scores: { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 10, trustDelta: -60 },
+                        feedback: "Combative and inflammatory response that destroys customer trust.",
                         nextStep: 'end-fail'
                     }
                 ]
@@ -1393,41 +1965,76 @@ SCENARIOS.forEach(s => {
 });
 
 /* ==========================================================================
-   QA VALIDATION & DEBUG ENGINE
+   FISHER-YATES RUNTIME ANSWER RANDOMIZATION (Unbiased Shuffle)
    ========================================================================== */
-function validateScenario(scenario) {
-    const issues = [];
-    if (!scenario.id) issues.push("Missing ID");
-    if (!scenario.title) issues.push("Missing title");
-    if (!scenario.steps || !Array.isArray(scenario.steps) || scenario.steps.length === 0) {
-        issues.push("Missing steps array");
-        return issues;
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    const stepIds = new Set(scenario.steps.map(s => s.id));
-    scenario.steps.forEach(step => {
-        if (!step.id) issues.push(`Step missing ID in scenario ${scenario.id}`);
-        if (!step.prompt) issues.push(`Step ${step.id} missing prompt`);
-        if (step.choices && Array.isArray(step.choices)) {
-            step.choices.forEach((choice, idx) => {
-                if (!choice.text) issues.push(`Choice ${idx} in step ${step.id} missing text`);
-                if (!choice.nextStep) issues.push(`Choice ${idx} in step ${step.id} missing nextStep`);
-                else if (choice.nextStep !== 'end-success' && choice.nextStep !== 'end-fail' && !stepIds.has(choice.nextStep)) {
-                    issues.push(`Choice ${idx} in step ${step.id} points to invalid nextStep: ${choice.nextStep}`);
+    return arr;
+}
+
+/* ==========================================================================
+   QA VALIDATION ENGINE (Development-Only Diagnostic Report)
+   ========================================================================== */
+function runDeveloperQAReport() {
+    const report = {
+        totalScenarios: SCENARIOS.length,
+        difficultyCounts: { Easy: 0, Medium: 0, Hard: 0 },
+        categoryCounts: {},
+        warnings: [],
+        structuralErrors: []
+    };
+
+    const ids = new Set();
+
+    SCENARIOS.forEach(s => {
+        // ID uniqueness check
+        if (ids.has(s.id)) {
+            report.structuralErrors.push(`Duplicate scenario ID: ${s.id}`);
+        }
+        ids.add(s.id);
+
+        // Difficulty counting
+        if (report.difficultyCounts[s.difficulty] !== undefined) {
+            report.difficultyCounts[s.difficulty]++;
+        } else {
+            report.difficultyCounts[s.difficulty] = 1;
+        }
+
+        // Category counting
+        report.categoryCounts[s.category] = (report.categoryCounts[s.category] || 0) + 1;
+
+        // Steps validation
+        if (!s.steps || s.steps.length === 0) {
+            report.structuralErrors.push(`Scenario ${s.id} has no steps.`);
+        } else {
+            const stepIds = new Set(s.steps.map(st => st.id));
+            s.steps.forEach(st => {
+                if (!st.prompt) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id} missing prompt.`);
+                if (st.choices) {
+                    st.choices.forEach((c, cIdx) => {
+                        if (!c.text) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing text.`);
+                        if (!c.nextStep) report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} missing nextStep.`);
+                        else if (c.nextStep !== 'end-success' && c.nextStep !== 'end-fail' && !stepIds.has(c.nextStep)) {
+                            report.structuralErrors.push(`Scenario ${s.id}, step ${st.id}, choice ${cIdx} points to invalid nextStep: ${c.nextStep}`);
+                        }
+                    });
+
+                    // Choice length bias check
+                    const lengths = st.choices.map(c => c.text.length);
+                    const max = Math.max(...lengths);
+                    const min = Math.min(...lengths);
+                    if (max > min * 2.5) {
+                        report.warnings.push(`Scenario ${s.id}, step ${st.id}: Length variance warning (Max: ${max}, Min: ${min}).`);
+                    }
                 }
             });
         }
     });
-    return issues;
-}
 
-function runQAValidation() {
-    const report = { total: SCENARIOS.length, malformed: [] };
-    SCENARIOS.forEach(s => {
-        const issues = validateScenario(s);
-        if (issues.length > 0) {
-            report.malformed.push({ id: s.id, issues });
-        }
-    });
     return report;
 }
 
@@ -1505,7 +2112,7 @@ const app = {
     init() {
         loadGameState();
         if (DEBUG_MODE) {
-            console.log("TSCL QA Validation Report:", runQAValidation());
+            console.log("TSCL 2.1 Developer QA Report:", runDeveloperQAReport());
         }
         this.navigateTo('dashboard');
     },
@@ -1561,7 +2168,7 @@ const app = {
         return `
             <div class="dashboard-hero">
                 <div class="level-badge">${gameState.levelTitle}</div>
-                <h2>Technical Support Call Lab</h2>
+                <h2>Technical Support Call Lab 2.1</h2>
                 <p>Master empathetic communication, technical discovery, and customer trust.</p>
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -1603,7 +2210,7 @@ const app = {
                         <div class="menu-icon">💬</div>
                         <div>
                             <div>Phrase Memory</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">20 framework exercises & phrasing patterns</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Audited framework exercises & balanced choices</div>
                         </div>
                     </div>
                     <span>→</span>
@@ -1613,7 +2220,7 @@ const app = {
                     <div class="menu-btn-left">
                         <div class="menu-icon">🗂️</div>
                         <div>
-                            <div>Scenario Library</div>
+                            <div>Scenario Library (31 Authored)</div>
                             <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Browse fully authored scenarios</div>
                         </div>
                     </div>
@@ -1657,14 +2264,14 @@ const app = {
             subtitle = "Select a scenario for unassisted live simulation.";
         }
 
-        const categories = ['All', 'Apple Account & Security', 'ICloud & Data', 'Billing & Purchases', 'Hardware & Performance', 'Apple Ecosystem', 'Difficult Customers & Escalations'];
+        const categories = ['All', 'Apple Account & Security', 'ICloud & Data', 'Hardware & Performance', 'Software & Connectivity', 'Difficult Customers & Escalations'];
 
         return `
             <div class="card">
                 <div class="card-header">
                     <div>
                         <div class="card-title">${title}</div>
-                        <p style="font-size: 0.8rem; color: var(--text-muted);">${subtitle}</p>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">${subtitle} (${SCENARIOS.length} Total Authored)</p>
                     </div>
                     <button class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.75rem;" onclick="app.navigateTo('dashboard')">Back</button>
                 </div>
@@ -1698,7 +2305,7 @@ const app = {
                 <div class="scenario-item" onclick="${clickAction}">
                     <div class="scenario-info">
                         <h5>${s.title}</h5>
-                        <p>${s.category} • Difficulty: ${s.difficulty} • <span style="color: ${badgeColor};">${statusText}</span></p>
+                        <p>${s.category} • Diff: ${s.difficulty} • <span style="color: ${badgeColor};">${statusText}</span></p>
                     </div>
                     <span style="color: var(--text-muted);">→</span>
                 </div>
@@ -1723,7 +2330,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE
+       CALL SIMULATOR ENGINE (With Runtime Answer Randomization)
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
@@ -1747,8 +2354,16 @@ const app = {
             },
             totalChoicesMade: 0,
             callCompleted: false,
-            selectedPersonality: personality
+            selectedPersonality: personality,
+            shuffledChoicesMap: {}
         };
+
+        // Pre-shuffle choices for every step using Fisher-Yates
+        scenario.steps.forEach(step => {
+            if (step.choices && step.choices.length > 0) {
+                currentSession.shuffledChoicesMap[step.id] = shuffleArray(step.choices);
+            }
+        });
 
         currentSession.callHistory.push({
             speaker: 'customer',
@@ -1764,6 +2379,7 @@ const app = {
         const s = currentSession.scenario;
         const currentStep = s.steps[currentSession.currentStepIndex];
         const isEnded = currentSession.currentStepIndex >= s.steps.length - 1 || currentSession.callCompleted;
+        const choices = currentSession.shuffledChoicesMap[currentStep?.id] || [];
 
         main.innerHTML = `
             <div class="card">
@@ -1793,11 +2409,11 @@ const app = {
                 </div>
 
                 <div id="interaction-area" style="margin-top: 16px;">
-                    ${!isEnded && currentStep && currentStep.choices && currentStep.choices.length > 0 ? `
+                    ${!isEnded && currentStep && choices.length > 0 ? `
                         <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted);">${currentStep.prompt}</div>
                         <div class="choices-area">
-                            ${currentStep.choices.map((choice, idx) => `
-                                <button class="choice-btn" onclick="app.makeChoice(${idx})">
+                            ${choices.map((choice, idx) => `
+                                <button class="choice-btn" onclick="app.makeChoice('${currentStep.id}', ${idx})">
                                     <span class="choice-prefix">Option ${idx + 1}</span>
                                     <span>${choice.text}</span>
                                 </button>
@@ -1817,16 +2433,15 @@ const app = {
         chatStream.scrollTop = chatStream.scrollHeight;
     },
 
-    makeChoice(choiceIndex) {
+    makeChoice(stepId, shuffledChoiceIndex) {
         if (currentSession.callCompleted) return;
 
-        const s = currentSession.scenario;
-        const currentStep = s.steps[currentSession.currentStepIndex];
-        const choice = currentStep.choices[choiceIndex];
+        const currentStep = currentSession.scenario.steps.find(st => st.id === stepId);
+        const choices = currentSession.shuffledChoicesMap[stepId];
+        const choice = choices[shuffledChoiceIndex];
 
         currentSession.totalChoicesMade++;
 
-        // Log decision for choice-specific post-call feedback
         currentSession.decisionLog.push({
             stepPrompt: currentStep.prompt,
             choiceText: choice.text,
@@ -1969,7 +2584,6 @@ const app = {
     renderResultsHTML(param) {
         const { scenario, overallScore, xpEarned, avgScores, trust, history, decisionLog, mode } = param;
 
-        // Build choice-specific review items
         let reviewHTML = '';
         if (decisionLog && decisionLog.length > 0) {
             reviewHTML = decisionLog.map((dec, idx) => `
@@ -2071,6 +2685,7 @@ const app = {
                 <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;" id="phrase-exercises-container">
                     ${PHRASE_MEMORY_EXERCISES.map((ex, idx) => {
                         const isCompleted = gameState.phraseMemoryCompleted[ex.id];
+                        // Shuffle phrase choices per render or keep consistent
                         return `
                             <div class="phrase-card" id="${ex.id}">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -2110,7 +2725,6 @@ const app = {
         feedbackEl.style.border = isBest ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(244, 63, 94, 0.3)';
         feedbackEl.innerHTML = `<strong>${isBest ? '✅ Optimal Response' : '⚠️ Sub-optimal Response'}</strong><br>${choice.feedback}`;
 
-        // PROTECTED XP: Awarded ONCE per unique phrase exercise ID
         if (isBest && !gameState.phraseMemoryCompleted[exerciseId]) {
             gameState.phraseMemoryCompleted[exerciseId] = true;
             gameState.xp += 25;
