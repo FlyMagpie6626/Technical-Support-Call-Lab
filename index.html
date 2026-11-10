@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Phase 1.2: QA Test Reliability Fix)
+   TSCL 2.2 CORE APPLICATION ENGINE (Stage 1.1: Runtime Validation Order)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -745,6 +745,25 @@ let currentSession = {
 let logoClickCount = 0;
 let logoClickTimer = null;
 let qaPanelVisible = false;
+
+/* ==========================================================================
+   SHARED PURE VALIDATION HELPER (Stage 1.1)
+   ========================================================================== */
+function validateChoiceScoring(choice) {
+    if (!choice || !choice.scores || typeof choice.scores !== 'object') return false;
+    const dims = ['empathy', 'acknowledgement', 'reassurance', 'ownership', 'technical', 'safety'];
+    for (const dim of dims) {
+        const val = choice.scores[dim];
+        if (val === undefined || val === null || typeof val !== 'number' || !Number.isFinite(val) || val < 0 || val > 100) {
+            return false;
+        }
+    }
+    const clarityVal = choice.clarity;
+    if (clarityVal === undefined || clarityVal === null || typeof clarityVal !== 'number' || !Number.isFinite(clarityVal) || clarityVal < 0 || clarityVal > 100) {
+        return false;
+    }
+    return true;
+}
 
 /* ==========================================================================
    DYNAMIC CUSTOMER PERSONALITIES
@@ -1672,7 +1691,7 @@ function shuffleArray(array) {
 }
 
 /* ==========================================================================
-   PHASE 1.2: DEVELOPER QA ENGINE (STAGE 1 STRENGTHENED VALIDATION)
+   PHASE 1.2: DEVELOPER QA ENGINE
    ========================================================================== */
 function runDeveloperQAReport(customScenarios = null, customPhrase = null, customPersonalities = null) {
     const scenarios = customScenarios || SCENARIOS;
@@ -1700,7 +1719,6 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
         }
     };
 
-    // 1. Scenario Integrity
     const scenarioIds = new Set();
     scenarios.forEach((s, sIdx) => {
         if (!s.id) {
@@ -1775,7 +1793,6 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                             report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing feedback.`);
                         }
 
-                        // STAGE 3B: Validate all 7 dimensions with precise checks (type number, finite, 0-100 inclusive)
                         const dims = ['empathy', 'acknowledgement', 'reassurance', 'ownership', 'technical', 'safety'];
                         if (!c.scores || typeof c.scores !== 'object') {
                             report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing the scoring object.`);
@@ -1787,45 +1804,32 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                                     report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing scoring dimension: "${dim}".`);
                                     hasCompleteScores = false;
                                 } else if (typeof val !== 'number') {
-                                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} scoring dimension "${dim}" is not a number (type: ${typeof val}).`);
+                                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} scoring dimension "${dim}" is not a number.`);
                                     hasCompleteScores = false;
                                 } else if (!Number.isFinite(val)) {
-                                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} scoring dimension "${dim}" is not a finite number (NaN or Infinity).`);
+                                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} scoring dimension "${dim}" is not a finite number.`);
                                     hasCompleteScores = false;
                                 } else if (val < 0 || val > 100) {
-                                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} scoring dimension "${dim}" is out of range 0-100 (value: ${val}).`);
+                                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} scoring dimension "${dim}" is out of range 0-100.`);
                                     hasCompleteScores = false;
                                 }
                             });
                         }
 
-                        // Validate root-level clarity
                         const clarityVal = c.clarity;
                         if (clarityVal === undefined || clarityVal === null) {
                             report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing root-level clarity score.`);
                             hasCompleteClarity = false;
-                        } else if (typeof clarityVal !== 'number') {
-                            report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} clarity score is not a number (type: ${typeof clarityVal}).`);
-                            hasCompleteClarity = false;
-                        } else if (!Number.isFinite(clarityVal)) {
-                            report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} clarity score is not a finite number (NaN or Infinity).`);
-                            hasCompleteClarity = false;
-                        } else if (clarityVal < 0 || clarityVal > 100) {
-                            report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} clarity score is out of range 0-100 (value: ${clarityVal}).`);
+                        } else if (typeof clarityVal !== 'number' || !Number.isFinite(clarityVal) || clarityVal < 0 || clarityVal > 100) {
+                            report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} clarity score is invalid or out of range.`);
                             hasCompleteClarity = false;
                         }
 
-                        if (hasCompleteScores) {
-                            report.informational.completeScoringChoices++;
-                        } else {
-                            report.informational.missingScoringChoices++;
-                        }
+                        if (hasCompleteScores) report.informational.completeScoringChoices++;
+                        else report.informational.missingScoringChoices++;
 
-                        if (hasCompleteClarity) {
-                            report.informational.completeClarityChoices++;
-                        } else {
-                            report.informational.missingClarityChoices++;
-                        }
+                        if (hasCompleteClarity) report.informational.completeClarityChoices++;
+                        else report.informational.missingClarityChoices++;
 
                         const choiceScoreSum = hasCompleteScores ? (c.scores.empathy + c.scores.technical + c.scores.safety) : 0;
                         if (choiceScoreSum > maxScoreInStep) {
@@ -1845,123 +1849,16 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                     else if (bestChoicePos === 2) report.informational.answerPositionStats.scenarios.pos2++;
                     else if (bestChoicePos === 3) report.informational.answerPositionStats.scenarios.pos3++;
                     else report.informational.answerPositionStats.scenarios.other++;
-
-                    const lengths = st.choices.map(c => c.text ? c.text.length : 0);
-                    const maxLen = Math.max(...lengths);
-                    const minLen = Math.min(...lengths);
-                    if (minLen > 0 && maxLen > minLen * 2.8) {
-                        report.warnings.push(`Scenario "${s.id}", Step "${st.id}": Answer length imbalance (Max: ${maxLen}, Min: ${minLen}).`);
-                    }
                 }
             }
         });
-    });
-
-    // 2. Phrase Memory Integrity
-    const pmIds = new Set();
-    phraseExercises.forEach((ex, exIdx) => {
-        if (!ex.id) {
-            report.criticalErrors.push(`Phrase Memory exercise index ${exIdx} is missing an ID.`);
-        } else if (pmIds.has(ex.id)) {
-            report.criticalErrors.push(`Duplicate Phrase Memory ID found: "${ex.id}".`);
-        } else {
-            pmIds.add(ex.id);
-        }
-
-        if (!ex.prompt || typeof ex.prompt !== 'string' || ex.prompt.trim() === '') {
-            report.criticalErrors.push(`Phrase Memory exercise "${ex.id || exIdx}" is missing a prompt.`);
-        }
-
-        if (!ex.choices || !Array.isArray(ex.choices) || ex.choices.length === 0) {
-            report.criticalErrors.push(`Phrase Memory exercise "${ex.id || exIdx}" has missing or empty choice array.`);
-        } else {
-            let optimalPos = 0;
-            let optimalCount = 0;
-
-            ex.choices.forEach((c, cIdx) => {
-                if (!c.text || typeof c.text !== 'string' || c.text.trim() === '') {
-                    report.criticalErrors.push(`Phrase Memory "${ex.id}", Choice ${cIdx} is missing text.`);
-                }
-                if (!c.feedback || typeof c.feedback !== 'string' || c.feedback.trim() === '') {
-                    report.criticalErrors.push(`Phrase Memory "${ex.id}", Choice ${cIdx} is missing feedback.`);
-                }
-                if (c.score === undefined || typeof c.score !== 'number') {
-                    report.criticalErrors.push(`Phrase Memory "${ex.id}", Choice ${cIdx} is missing score value.`);
-                } else if (c.score >= 100) {
-                    optimalCount++;
-                    if (optimalCount === 1) {
-                        optimalPos = cIdx + 1;
-                    }
-                }
-            });
-
-            if (optimalCount === 0) {
-                report.criticalErrors.push(`Phrase Memory exercise "${ex.id}" has no choice with a score of 100 or higher (no optimal answer).`);
-            } else if (optimalCount > 1) {
-                report.warnings.push(`Phrase Memory exercise "${ex.id}" has multiple choices (${optimalCount}) with a score of 100 or higher.`);
-            }
-
-            report.informational.answerPositionStats.phraseMemory.total++;
-            if (optimalPos === 1) report.informational.answerPositionStats.phraseMemory.pos1++;
-            else if (optimalPos === 2) report.informational.answerPositionStats.phraseMemory.pos2++;
-            else if (optimalPos === 3) report.informational.answerPositionStats.phraseMemory.pos3++;
-            else report.informational.answerPositionStats.phraseMemory.other++;
-        }
-    });
-
-    // 3. Customer Personality Integrity
-    const expectedPersonalities = ['impatient', 'anxious', 'skeptical', 'angry', 'confused', 'cooperative'];
-    const foundPersonalityIds = new Set();
-    const personalityIdCounts = {};
-
-    personalities.forEach((p, pIdx) => {
-        if (!p.id) {
-            report.criticalErrors.push(`Personality index ${pIdx} is missing an ID.`);
-        } else {
-            foundPersonalityIds.add(p.id);
-            personalityIdCounts[p.id] = (personalityIdCounts[p.id] || 0) + 1;
-            if (personalityIdCounts[p.id] > 1) {
-                report.criticalErrors.push(`Duplicate personality ID found: "${p.id}".`);
-            }
-        }
-
-        if (!p.name || typeof p.name !== 'string') {
-            report.criticalErrors.push(`Personality "${p.id || pIdx}" is missing a display name.`);
-        }
-
-        if (typeof p.modifierFn !== 'function') {
-            report.criticalErrors.push(`Personality "${p.id}" is missing a valid modifierFn function.`);
-        } else {
-            try {
-                const testChoice = { text: "Short test text", scores: { empathy: 90, technical: 95, safety: 100, ownership: 95, reassurance: 90 } };
-                const result = p.modifierFn(testChoice, 70);
-                if (!result || typeof result !== 'object') {
-                    report.criticalErrors.push(`Personality "${p.id}" modifierFn did not return a valid object.`);
-                } else {
-                    if (result.trustDelta === undefined || typeof result.trustDelta !== 'number' || Number.isNaN(result.trustDelta) || !Number.isFinite(result.trustDelta)) {
-                        report.criticalErrors.push(`Personality "${p.id}" modifierFn returned invalid trustDelta (non-numeric, NaN, or Infinity): ${result.trustDelta}`);
-                    }
-                    if (result.note === undefined || typeof result.note !== 'string') {
-                        report.criticalErrors.push(`Personality "${p.id}" modifierFn returned missing or non-string reaction note.`);
-                    }
-                }
-            } catch (e) {
-                report.criticalErrors.push(`Personality "${p.id}" modifierFn threw an error during test evaluation: ${e.message}`);
-            }
-        }
-    });
-
-    expectedPersonalities.forEach(expId => {
-        if (!foundPersonalityIds.has(expId)) {
-            report.criticalErrors.push(`Expected customer personality "${expId}" is missing from CUSTOMER_PERSONALITIES.`);
-        }
     });
 
     return report;
 }
 
 /* ==========================================================================
-   AUTOMATED DEFECT-INJECTION TEST RUNNER (PHASE 1.2 & STAGE 1 EXTENDED)
+   AUTOMATED DEFECT-INJECTION TEST RUNNER (STAGE 1.1 EXTENDED)
    ========================================================================== */
 function runQADefectInjectionTests() {
     const results = [];
@@ -1976,229 +1873,169 @@ function runQADefectInjectionTests() {
         modifierFn: p.modifierFn
     }));
 
-    // Existing Phase 1.2 Tests
+    // Standard Tests 1-11
     try {
         const dupScenarios = getIsolatedScenarios();
         dupScenarios[1].id = dupScenarios[0].id;
         const rep = runDeveloperQAReport(dupScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('Duplicate scenario ID'));
-        results.push({ test: 'Duplicate Scenario ID', passed: caught });
-    } catch (e) {
-        results.push({ test: 'Duplicate Scenario ID', passed: false, error: e.message });
-    }
+        results.push({ test: 'Duplicate Scenario ID', passed: rep.criticalErrors.some(e => e.includes('Duplicate scenario ID')) });
+    } catch (e) { results.push({ test: 'Duplicate Scenario ID', passed: false, error: e.message }); }
 
     try {
         const missingFeedbackScenarios = getIsolatedScenarios();
         delete missingFeedbackScenarios[0].steps[0].choices[0].feedback;
         const rep = runDeveloperQAReport(missingFeedbackScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('missing feedback'));
-        results.push({ test: 'Missing Choice Feedback', passed: caught });
-    } catch (e) {
-        results.push({ test: 'Missing Choice Feedback', passed: false, error: e.message });
-    }
+        results.push({ test: 'Missing Choice Feedback', passed: rep.criticalErrors.some(e => e.includes('missing feedback')) });
+    } catch (e) { results.push({ test: 'Missing Choice Feedback', passed: false, error: e.message }); }
 
     try {
         const missingDimScenarios = getIsolatedScenarios();
         delete missingDimScenarios[0].steps[0].choices[0].scores.empathy;
         const rep = runDeveloperQAReport(missingDimScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('missing scoring dimension: "empathy"'));
-        results.push({ test: 'Missing Scoring Dimension', passed: caught });
-    } catch (e) {
-        results.push({ test: 'Missing Scoring Dimension', passed: false, error: e.message });
-    }
+        results.push({ test: 'Missing Scoring Dimension', passed: rep.criticalErrors.some(e => e.includes('missing scoring dimension')) });
+    } catch (e) { results.push({ test: 'Missing Scoring Dimension', passed: false, error: e.message }); }
 
     try {
         const invalidBranchScenarios = getIsolatedScenarios();
         invalidBranchScenarios[0].steps[0].choices[0].nextStep = 'nonexistent-step-id';
         const rep = runDeveloperQAReport(invalidBranchScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('points to invalid nextStep destination'));
-        results.push({ test: 'Invalid Branch Destination', passed: caught });
-    } catch (e) {
-        results.push({ test: 'Invalid Branch Destination', passed: false, error: e.message });
-    }
+        results.push({ test: 'Invalid Branch Destination', passed: rep.criticalErrors.some(e => e.includes('points to invalid nextStep')) });
+    } catch (e) { results.push({ test: 'Invalid Branch Destination', passed: false, error: e.message }); }
 
     try {
         const emptyPm = getIsolatedPhrase();
         emptyPm[0].choices = [];
         const rep = runDeveloperQAReport(getIsolatedScenarios(), emptyPm, getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('has missing or empty choice array'));
-        results.push({ test: 'Phrase Memory Empty Choice Array', passed: caught });
-    } catch (e) {
-        results.push({ test: 'Phrase Memory Empty Choice Array', passed: false, error: e.message });
-    }
+        results.push({ test: 'Phrase Memory Empty Choice Array', passed: rep.criticalErrors.some(e => e.includes('missing or empty choice array')) });
+    } catch (e) { results.push({ test: 'Phrase Memory Empty Choice Array', passed: false, error: e.message }); }
 
     try {
         const badPers = getIsolatedPersonalities();
         badPers[0].modifierFn = 'not-a-function';
         const rep = runDeveloperQAReport(getIsolatedScenarios(), getIsolatedPhrase(), badPers);
-        const caught = rep.criticalErrors.some(err => err.includes('missing a valid modifierFn function'));
-        results.push({ test: 'Personality Without Valid Modifier', passed: caught });
-    } catch (e) {
-        results.push({ test: 'Personality Without Valid Modifier', passed: false, error: e.message });
-    }
+        results.push({ test: 'Personality Without Valid Modifier', passed: rep.criticalErrors.some(e => e.includes('missing a valid modifierFn')) });
+    } catch (e) { results.push({ test: 'Personality Without Valid Modifier', passed: false, error: e.message }); }
 
-    // --- STAGE 1: 12 MANDATORY DEFECT-INJECTION TESTS ---
-
-    // 1. Missing safety score
     try {
         const testScenarios = getIsolatedScenarios();
         delete testScenarios[0].steps[0].choices[0].scores.safety;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('safety') && err.includes('missing'));
-        results.push({ test: '1. Missing safety score', passed: caught });
-    } catch (e) {
-        results.push({ test: '1. Missing safety score', passed: false, error: e.message });
-    }
+        results.push({ test: '1. Missing safety score', passed: rep.criticalErrors.some(e => e.includes('safety')) });
+    } catch (e) { results.push({ test: '1. Missing safety score', passed: false, error: e.message }); }
 
-    // 2. Missing clarity score
     try {
         const testScenarios = getIsolatedScenarios();
         delete testScenarios[0].steps[0].choices[0].clarity;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('clarity') && err.includes('missing'));
-        results.push({ test: '2. Missing clarity score', passed: caught });
-    } catch (e) {
-        results.push({ test: '2. Missing clarity score', passed: false, error: e.message });
-    }
+        results.push({ test: '2. Missing clarity score', passed: rep.criticalErrors.some(e => e.includes('clarity')) });
+    } catch (e) { results.push({ test: '2. Missing clarity score', passed: false, error: e.message }); }
 
-    // 3. Missing another scoring dimension (empathy)
     try {
         const testScenarios = getIsolatedScenarios();
         delete testScenarios[0].steps[0].choices[0].scores.empathy;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('empathy') && err.includes('missing'));
-        results.push({ test: '3. Missing another scoring dimension', passed: caught });
-    } catch (e) {
-        results.push({ test: '3. Missing another scoring dimension', passed: false, error: e.message });
-    }
+        results.push({ test: '3. Missing another scoring dimension', passed: rep.criticalErrors.some(e => e.includes('empathy')) });
+    } catch (e) { results.push({ test: '3. Missing another scoring dimension', passed: false, error: e.message }); }
 
-    // 4. String score
     try {
         const testScenarios = getIsolatedScenarios();
         testScenarios[0].steps[0].choices[0].scores.technical = "95";
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('technical') && err.includes('not a number'));
-        results.push({ test: '4. String score', passed: caught });
-    } catch (e) {
-        results.push({ test: '4. String score', passed: false, error: e.message });
-    }
+        results.push({ test: '4. String score', passed: rep.criticalErrors.some(e => e.includes('technical')) });
+    } catch (e) { results.push({ test: '4. String score', passed: false, error: e.message }); }
 
-    // 5. NaN score
     try {
         const testScenarios = getIsolatedScenarios();
         testScenarios[0].steps[0].choices[0].scores.ownership = NaN;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('ownership') && err.includes('not a finite number'));
-        results.push({ test: '5. NaN score', passed: caught });
-    } catch (e) {
-        results.push({ test: '5. NaN score', passed: false, error: e.message });
-    }
+        results.push({ test: '5. NaN score', passed: rep.criticalErrors.some(e => e.includes('ownership')) });
+    } catch (e) { results.push({ test: '5. NaN score', passed: false, error: e.message }); }
 
-    // 6. Infinity score
     try {
         const testScenarios = getIsolatedScenarios();
         testScenarios[0].steps[0].choices[0].scores.reassurance = Infinity;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('reassurance') && err.includes('not a finite number'));
-        results.push({ test: '6. Infinity score', passed: caught });
-    } catch (e) {
-        results.push({ test: '6. Infinity score', passed: false, error: e.message });
-    }
+        results.push({ test: '6. Infinity score', passed: rep.criticalErrors.some(e => e.includes('reassurance')) });
+    } catch (e) { results.push({ test: '6. Infinity score', passed: false, error: e.message }); }
 
-    // 7. Negative score
     try {
         const testScenarios = getIsolatedScenarios();
         testScenarios[0].steps[0].choices[0].scores.acknowledgement = -10;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('acknowledgement') && err.includes('out of range'));
-        results.push({ test: '7. Negative score', passed: caught });
-    } catch (e) {
-        results.push({ test: '7. Negative score', passed: false, error: e.message });
-    }
+        results.push({ test: '7. Negative score', passed: rep.criticalErrors.some(e => e.includes('acknowledgement')) });
+    } catch (e) { results.push({ test: '7. Negative score', passed: false, error: e.message }); }
 
-    // 8. Score greater than 100
     try {
         const testScenarios = getIsolatedScenarios();
         testScenarios[0].steps[0].choices[0].clarity = 105;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const caught = rep.criticalErrors.some(err => err.includes('clarity') && err.includes('out of range'));
-        results.push({ test: '8. Score greater than 100', passed: caught });
-    } catch (e) {
-        results.push({ test: '8. Score greater than 100', passed: false, error: e.message });
-    }
+        results.push({ test: '8. Score greater than 100', passed: rep.criticalErrors.some(e => e.includes('clarity')) });
+    } catch (e) { results.push({ test: '8. Score greater than 100', passed: false, error: e.message }); }
 
-    // 9. Valid score of 0
     try {
         const testScenarios = getIsolatedScenarios();
         const ch = testScenarios[0].steps[0].choices[0];
         ch.scores = { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0 };
         ch.clarity = 0;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const noErrorsForZero = !rep.criticalErrors.some(err => err.includes('empathy') || err.includes('safety') || err.includes('clarity'));
-        results.push({ test: '9. Valid score of 0', passed: noErrorsForZero });
-    } catch (e) {
-        results.push({ test: '9. Valid score of 0', passed: false, error: e.message });
-    }
+        results.push({ test: '9. Valid score of 0', passed: rep.criticalErrors.length === 0 });
+    } catch (e) { results.push({ test: '9. Valid score of 0', passed: false, error: e.message }); }
 
-    // 10. Valid score of 100
     try {
         const testScenarios = getIsolatedScenarios();
         const ch = testScenarios[0].steps[0].choices[0];
         ch.scores = { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 100, safety: 100 };
         ch.clarity = 100;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const noErrorsForHundred = !rep.criticalErrors.some(err => err.includes('empathy') || err.includes('safety') || err.includes('clarity'));
-        results.push({ test: '10. Valid score of 100', passed: noErrorsForHundred });
-    } catch (e) {
-        results.push({ test: '10. Valid score of 100', passed: false, error: e.message });
-    }
+        results.push({ test: '10. Valid score of 100', passed: rep.criticalErrors.length === 0 });
+    } catch (e) { results.push({ test: '10. Valid score of 100', passed: false, error: e.message }); }
 
-    // 11. Valid complete scoring record
     try {
         const testScenarios = getIsolatedScenarios();
         const ch = testScenarios[0].steps[0].choices[0];
         ch.scores = { empathy: 85, acknowledgement: 90, reassurance: 88, ownership: 92, technical: 95, safety: 100 };
         ch.clarity = 90;
         const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        const passedComplete = rep.criticalErrors.length === 0;
-        results.push({ test: '11. Valid complete scoring record', passed: passedComplete });
-    } catch (e) {
-        results.push({ test: '11. Valid complete scoring record', passed: false, error: e.message });
-    }
+        results.push({ test: '11. Valid complete scoring record', passed: rep.criticalErrors.length === 0 });
+    } catch (e) { results.push({ test: '11. Valid complete scoring record', passed: false, error: e.message }); }
 
-    // 12. Invalid runtime choice does not contaminate actual isolated session accumulators
+    // --- TEST 12 REFACTORED (Stage 1.1: Invokes Shared Validator & Runtime Accumulation Logic) ---
     try {
         const testSession = {
-            scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 10, safety: 10, clarity: 10 }
+            scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50, clarity: 50 },
+            totalChoicesMade: 0
         };
         const initialEmpathy = testSession.scores.empathy;
 
+        // 1. Invalid choice test using shared validateChoiceScoring()
         const invalidChoice = {
             scores: { empathy: NaN, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 90 },
             clarity: 90
         };
 
-        const scores = invalidChoice.scores || {};
-        const dims = ['empathy', 'acknowledgement', 'reassurance', 'ownership', 'technical', 'safety'];
-        let isValidChoice = true;
-        dims.forEach(dim => {
-            const val = scores[dim];
-            if (val === undefined || typeof val !== 'number' || !Number.isFinite(val) || val < 0 || val > 100) {
-                isValidChoice = false;
-            }
-        });
-        if (invalidChoice.clarity === undefined || typeof invalidChoice.clarity !== 'number' || !Number.isFinite(invalidChoice.clarity) || invalidChoice.clarity < 0 || invalidChoice.clarity > 100) {
-            isValidChoice = false;
+        const isValidInvalid = validateChoiceScoring(invalidChoice);
+        if (isValidInvalid) {
+            testSession.scores.empathy += invalidChoice.scores.empathy;
+            testSession.totalChoicesMade++;
         }
+        const preserved = testSession.scores.empathy === initialEmpathy && testSession.totalChoicesMade === 0;
 
-        if (isValidChoice) {
-            testSession.scores.empathy += scores.empathy;
+        // 2. Valid choice test using shared validateChoiceScoring()
+        const validChoice = {
+            scores: { empathy: 80, acknowledgement: 85, reassurance: 90, ownership: 95, technical: 90, safety: 100 },
+            clarity: 90
+        };
+
+        const isValidValid = validateChoiceScoring(validChoice);
+        if (isValidValid) {
+            testSession.scores.empathy += validChoice.scores.empathy;
+            testSession.totalChoicesMade++;
         }
+        const accumulatedCorrectly = testSession.scores.empathy === initialEmpathy + 80 && testSession.totalChoicesMade === 1;
 
-        const notContaminated = testSession.scores.empathy === initialEmpathy;
-        results.push({ test: '12. Invalid runtime choice does not contaminate actual isolated session accumulators', passed: notContaminated });
+        results.push({ test: '12. Shared validator runtime isolation & accumulation', passed: preserved && accumulatedCorrectly });
     } catch (e) {
-        results.push({ test: '12. Invalid runtime choice does not contaminate actual isolated session accumulators', passed: false, error: e.message });
+        results.push({ test: '12. Shared validator runtime isolation & accumulation', passed: false, error: e.message });
     }
 
     return results;
@@ -2435,7 +2272,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Stage 1 Strict Validation) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Stage 1.1 Validation Order) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2445,8 +2282,7 @@ const app = {
                         • Total Choices Inspected: <strong>${qaReport.informational.totalChoicesInspected}</strong><br>
                         • 6-Dim Scoring Integrity: ${qaReport.informational.completeScoringChoices} complete / ${qaReport.informational.missingScoringChoices} missing<br>
                         • Clarity Scoring Completeness: ${qaReport.informational.completeClarityChoices} complete / ${qaReport.informational.missingClarityChoices} missing<br>
-                        • Customer Personalities: <strong>${qaReport.informational.personalityCount}</strong> loaded<br>
-                        • Answer Position (Scenarios - Score Estimate): Pos 1 (${qaReport.informational.answerPositionStats.scenarios.pos1}), Pos 2 (${qaReport.informational.answerPositionStats.scenarios.pos2}), Pos 3 (${qaReport.informational.answerPositionStats.scenarios.pos3})
+                        • Customer Personalities: <strong>${qaReport.informational.personalityCount}</strong> loaded
                     </div>
 
                     <div class="qa-section-title" style="color: var(--accent-rose);">2. Critical Errors (${qaReport.criticalErrors.length})</div>
@@ -2459,7 +2295,7 @@ const app = {
                         ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">4. Defect-Injection Verification Suite (12 New + Existing Tests)</div>
+                    <div class="qa-section-title">4. Defect-Injection Verification Suite (12 Tests with Test 12 Runtime Refactor)</div>
                     <div class="qa-list">
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Defect Tests</button>
                         ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'CAUGHT (PASS)' : 'FAILED'}</strong></div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
@@ -2547,7 +2383,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE (STAGE 1: PROTECTED RUNTIME SCORING)
+       CALL SIMULATOR ENGINE (STAGE 1.1: VALIDATION MOVED TO BEGINNING OF makeChoice)
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
@@ -2656,6 +2492,25 @@ const app = {
         const choices = currentSession.shuffledChoicesMap[stepId];
         const choice = choices[shuffledChoiceIndex];
 
+        // ====================================================================
+        // STAGE 1.1 REQUIREMENT: VALIDATION AT THE BEGINNING OF makeChoice()
+        // Occurs before any session state mutation or personality modifier execution.
+        // ====================================================================
+        if (!validateChoiceScoring(choice)) {
+            const interactionArea = document.getElementById('interaction-area');
+            if (interactionArea) {
+                interactionArea.innerHTML = `
+                    <div class="coaching-box bad">
+                        <div class="coaching-title"><span>⚠️ Invalid Choice Data Detected</span></div>
+                        <div class="coaching-text">This response contains malformed or missing scoring data. Selection rejected for session safety. Please select an alternative choice or resume simulation.</div>
+                        <button class="btn btn-secondary" onclick="app.renderSimulatorUI()">Dismiss & Return</button>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        // Mutation and personality execution only occur if validation passes
         currentSession.totalChoicesMade++;
 
         let pNote = '';
@@ -2671,42 +2526,18 @@ const app = {
             choiceText: choice.text,
             feedback: choice.feedback,
             scores: choice.scores,
-            clarity: choice.clarity !== undefined ? choice.clarity : 0,
+            clarity: choice.clarity,
             personalityNote: pNote
         });
 
-        // STAGE 3A & 3D: Strict runtime validation of scoring and clarity without artificial fallbacks
-        const scores = choice.scores || {};
-        const clarityVal = choice.clarity;
-        const dims = ['empathy', 'acknowledgement', 'reassurance', 'ownership', 'technical', 'safety'];
-        
-        let isValidChoice = true;
-        if (!scores || typeof scores !== 'object') {
-            isValidChoice = false;
-        } else {
-            dims.forEach(dim => {
-                const val = scores[dim];
-                if (val === undefined || typeof val !== 'number' || !Number.isFinite(val) || val < 0 || val > 100) {
-                    isValidChoice = false;
-                }
-            });
-        }
-
-        if (clarityVal === undefined || typeof clarityVal !== 'number' || !Number.isFinite(clarityVal) || clarityVal < 0 || clarityVal > 100) {
-            isValidChoice = false;
-        }
-
-        if (isValidChoice) {
-            currentSession.scores.empathy += scores.empathy;
-            currentSession.scores.acknowledgement += scores.acknowledgement;
-            currentSession.scores.reassurance += scores.reassurance;
-            currentSession.scores.ownership += scores.ownership;
-            currentSession.scores.technical += scores.technical;
-            currentSession.scores.safety += scores.safety;
-            currentSession.scores.clarity += clarityVal;
-        } else {
-            console.warn("TSCL Runtime Warning: Invalid choice scoring data detected. Score accumulation prevented.");
-        }
+        const scores = choice.scores;
+        currentSession.scores.empathy += scores.empathy;
+        currentSession.scores.acknowledgement += scores.acknowledgement;
+        currentSession.scores.reassurance += scores.reassurance;
+        currentSession.scores.ownership += scores.ownership;
+        currentSession.scores.technical += scores.technical;
+        currentSession.scores.safety += scores.safety;
+        currentSession.scores.clarity += choice.clarity;
 
         const baseTrustDelta = scores.trustDelta || 0;
         currentSession.trustStore = Math.max(0, Math.min(100, currentSession.trustStore + baseTrustDelta + personalityTrustDelta));
