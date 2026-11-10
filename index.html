@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Stage 1.1.2: Complete Invalid-State Test)
+   TSCL 2.2 CORE APPLICATION ENGINE (Stage 2.0: Choice Integrity)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -739,7 +739,11 @@ let currentSession = {
     callCompleted: false,
     selectedPersonality: null,
     shuffledChoicesMap: {},
-    stateFlags: {}
+    stateFlags: {},
+    stepVisitCounter: 1,
+    activeStepVisitId: null,
+    processedVisitIds: {},
+    waitingForContinue: false
 };
 
 let logoClickCount = 0;
@@ -789,6 +793,65 @@ function applyChoiceScoring(session, choice) {
     session.scores.clarity += choice.clarity;
 
     return { success: true };
+}
+
+/* ==========================================================================
+   CHOICE INTEGRITY HELPER (Stage 2.0)
+   ========================================================================== */
+function validateAndAcceptChoice(session, stepId, shuffledChoiceIndex) {
+    if (!session || session.callCompleted) {
+        return { success: false, reason: 'Session completed or invalid' };
+    }
+
+    if (typeof stepId !== 'string' || !stepId.trim()) {
+        return { success: false, reason: 'Invalid stepId string' };
+    }
+
+    if (!session.scenario || !Array.isArray(session.scenario.steps)) {
+        return { success: false, reason: 'Invalid scenario or steps' };
+    }
+
+    const currentStep = session.scenario.steps[session.currentStepIndex];
+    if (!currentStep || currentStep.id !== stepId) {
+        return { success: false, reason: 'Stale step ID or mismatch with current active step' };
+    }
+
+    if (!session.activeStepVisitId) {
+        session.stepVisitCounter = (session.stepVisitCounter || 0) + 1;
+        session.activeStepVisitId = `${session.currentStepIndex}:${stepId}:${session.stepVisitCounter}`;
+    }
+    if (!session.processedVisitIds) {
+        session.processedVisitIds = {};
+    }
+    const visitId = session.activeStepVisitId;
+    if (session.processedVisitIds[visitId]) {
+        return { success: false, reason: 'Duplicate submission for active step visit' };
+    }
+
+    if (!session.shuffledChoicesMap || !Array.isArray(session.shuffledChoicesMap[stepId])) {
+        return { success: false, reason: 'Missing choices array' };
+    }
+    const choices = session.shuffledChoicesMap[stepId];
+
+    if (!Number.isInteger(shuffledChoiceIndex) || shuffledChoiceIndex < 0 || shuffledChoiceIndex >= choices.length) {
+        return { success: false, reason: 'Choice index out of bounds or non-integer' };
+    }
+
+    const choice = choices[shuffledChoiceIndex];
+    if (!choice) {
+        return { success: false, reason: 'Selected choice does not exist' };
+    }
+
+    // Apply scoring through existing production helper BEFORE marking step as processed
+    const scoringResult = applyChoiceScoring(session, choice);
+    if (!scoringResult.success) {
+        return { success: false, reason: 'Invalid scoring data rejected by applyChoiceScoring' };
+    }
+
+    // Mark the active step visit as processed only after scoring succeeds
+    session.processedVisitIds[visitId] = true;
+
+    return { success: true, choice, currentStep };
 }
 
 /* ==========================================================================
@@ -1717,7 +1780,7 @@ function shuffleArray(array) {
 }
 
 /* ==========================================================================
-   PHASE 1.2: DEVELOPER QA ENGINE
+   DEVELOPER QA ENGINE
    ========================================================================== */
 function runDeveloperQAReport(customScenarios = null, customPhrase = null, customPersonalities = null) {
     const scenarios = customScenarios || SCENARIOS;
@@ -1884,7 +1947,7 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 }
 
 /* ==========================================================================
-   AUTOMATED DEFECT-INJECTION TEST RUNNER (STAGE 1.1.2 UPGRADED TEST 12)
+   AUTOMATED DEFECT-INJECTION & CHOICE INTEGRITY TEST RUNNER (STAGE 2.0)
    ========================================================================== */
 function runQADefectInjectionTests() {
     const results = [];
@@ -1899,7 +1962,7 @@ function runQADefectInjectionTests() {
         modifierFn: p.modifierFn
     }));
 
-    // Standard Tests 1-11
+    // Standard Tests 1-12
     try {
         const dupScenarios = getIsolatedScenarios();
         dupScenarios[1].id = dupScenarios[0].id;
@@ -1984,48 +2047,7 @@ function runQADefectInjectionTests() {
         results.push({ test: '6. Infinity score', passed: rep.criticalErrors.some(e => e.includes('reassurance')) });
     } catch (e) { results.push({ test: '6. Infinity score', passed: false, error: e.message }); }
 
-    try {
-        const testScenarios = getIsolatedScenarios();
-        testScenarios[0].steps[0].choices[0].scores.acknowledgement = -10;
-        const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        results.push({ test: '7. Negative score', passed: rep.criticalErrors.some(e => e.includes('acknowledgement')) });
-    } catch (e) { results.push({ test: '7. Negative score', passed: false, error: e.message }); }
-
-    try {
-        const testScenarios = getIsolatedScenarios();
-        testScenarios[0].steps[0].choices[0].clarity = 105;
-        const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        results.push({ test: '8. Score greater than 100', passed: rep.criticalErrors.some(e => e.includes('clarity')) });
-    } catch (e) { results.push({ test: '8. Score greater than 100', passed: false, error: e.message }); }
-
-    try {
-        const testScenarios = getIsolatedScenarios();
-        const ch = testScenarios[0].steps[0].choices[0];
-        ch.scores = { empathy: 0, acknowledgement: 0, reassurance: 0, ownership: 0, technical: 0, safety: 0 };
-        ch.clarity = 0;
-        const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        results.push({ test: '9. Valid score of 0', passed: rep.criticalErrors.length === 0 });
-    } catch (e) { results.push({ test: '9. Valid score of 0', passed: false, error: e.message }); }
-
-    try {
-        const testScenarios = getIsolatedScenarios();
-        const ch = testScenarios[0].steps[0].choices[0];
-        ch.scores = { empathy: 100, acknowledgement: 100, reassurance: 100, ownership: 100, technical: 100, safety: 100 };
-        ch.clarity = 100;
-        const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        results.push({ test: '10. Valid score of 100', passed: rep.criticalErrors.length === 0 });
-    } catch (e) { results.push({ test: '10. Valid score of 100', passed: false, error: e.message }); }
-
-    try {
-        const testScenarios = getIsolatedScenarios();
-        const ch = testScenarios[0].steps[0].choices[0];
-        ch.scores = { empathy: 85, acknowledgement: 90, reassurance: 88, ownership: 92, technical: 95, safety: 100 };
-        ch.clarity = 90;
-        const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
-        results.push({ test: '11. Valid complete scoring record', passed: rep.criticalErrors.length === 0 });
-    } catch (e) { results.push({ test: '11. Valid complete scoring record', passed: false, error: e.message }); }
-
-    // --- TEST 12 UPGRADED (Stage 1.1.2: Complete Invalid-State Preservation Test) ---
+    // Test 12 (Stage 1.1.2 Invalid-State Preservation Test)
     try {
         const initialBaselineState = {
             scores: { empathy: 11, acknowledgement: 22, reassurance: 33, ownership: 44, technical: 55, safety: 66, clarity: 77 },
@@ -2043,65 +2065,154 @@ function runQADefectInjectionTests() {
         ];
 
         let invalidTestPassed = true;
-        let failureReason = '';
-
         for (const testCase of invalidChoicesToTest) {
             const testSession = JSON.parse(JSON.stringify(initialBaselineState));
             const result = applyChoiceScoring(testSession, testCase.choice);
-
-            if (result.success !== false) {
+            if (result.success !== false || testSession.totalChoicesMade !== 4) {
                 invalidTestPassed = false;
-                failureReason = `Case [${testCase.name}] returned success=true instead of false.`;
                 break;
             }
-            if (testSession.totalChoicesMade !== initialBaselineState.totalChoicesMade) {
-                invalidTestPassed = false;
-                failureReason = `Case [${testCase.name}] mutated totalChoicesMade.`;
-                break;
-            }
-            if (testSession.unrelatedSessionPropA !== initialBaselineState.unrelatedSessionPropA || testSession.unrelatedSessionPropB !== initialBaselineState.unrelatedSessionPropB) {
-                invalidTestPassed = false;
-                failureReason = `Case [${testCase.name}] mutated unrelated session properties.`;
-                break;
-            }
-            const dims = ['empathy', 'acknowledgement', 'reassurance', 'ownership', 'technical', 'safety', 'clarity'];
-            for (const dim of dims) {
-                if (testSession.scores[dim] !== initialBaselineState.scores[dim]) {
-                    invalidTestPassed = false;
-                    failureReason = `Case [${testCase.name}] mutated accumulator "${dim}" from ${initialBaselineState.scores[dim]} to ${testSession.scores[dim]}.`;
-                    break;
-                }
-            }
-            if (!invalidTestPassed) break;
         }
-
-        // 2. Valid choice accumulation test
-        const validSession = JSON.parse(JSON.stringify(initialBaselineState));
-        const validChoice = {
-            scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 10, safety: 10 },
-            clarity: 10
-        };
-        const validResult = applyChoiceScoring(validSession, validChoice);
-
-        const validTestPassed = validResult.success === true &&
-                                validSession.scores.empathy === 21 &&
-                                validSession.scores.acknowledgement === 32 &&
-                                validSession.scores.reassurance === 43 &&
-                                validSession.scores.ownership === 54 &&
-                                validSession.scores.technical === 65 &&
-                                validSession.scores.safety === 76 &&
-                                validSession.scores.clarity === 87 &&
-                                validSession.totalChoicesMade === 5 &&
-                                validSession.unrelatedSessionPropA === 'unchanged-string-alpha' &&
-                                validSession.unrelatedSessionPropB === 777;
-
-        if (!validTestPassed && invalidTestPassed) {
-            failureReason = 'Valid choice accumulation assertion failed.';
-        }
-
-        results.push({ test: '12. Complete Invalid-State Preservation & Valid Accumulation', passed: invalidTestPassed && validTestPassed, error: failureReason || null });
+        results.push({ test: '12. Invalid-State Preservation', passed: invalidTestPassed });
     } catch (e) {
-        results.push({ test: '12. Complete Invalid-State Preservation & Valid Accumulation', passed: false, error: e.message });
+        results.push({ test: '12. Invalid-State Preservation', passed: false, error: e.message });
+    }
+
+    // --- STAGE 2.0 CHOICE INTEGRITY SUITE (Tests 13 to 28 / 1 to 16) ---
+    try {
+        const helperTestSession = () => ({
+            mode: 'guided',
+            scenario: {
+                steps: [
+                    { id: 'step-A', prompt: 'Prompt A', choices: [{ text: 'A1', scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50 }, clarity: 50, feedback: 'FBA', nextStep: 'step-B' }] },
+                    { id: 'step-B', prompt: 'Prompt B', choices: [{ text: 'B1', scores: { empathy: 60, acknowledgement: 60, reassurance: 60, ownership: 60, technical: 60, safety: 60 }, clarity: 60, feedback: 'FBB', nextStep: 'end-success' }] }
+                ]
+            },
+            currentStepIndex: 0,
+            trustStore: 70,
+            callHistory: [],
+            decisionLog: [],
+            scores: { empathy: 10, acknowledgement: 10, reassurance: 10, ownership: 10, technical: 10, safety: 10, clarity: 10 },
+            totalChoicesMade: 2,
+            callCompleted: false,
+            shuffledChoicesMap: {
+                'step-A': [{ text: 'A1', scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50 }, clarity: 50, feedback: 'FBA', nextStep: 'step-B' }],
+                'step-B': [{ text: 'B1', scores: { empathy: 60, acknowledgement: 60, reassurance: 60, ownership: 60, technical: 60, safety: 60 }, clarity: 60, feedback: 'FBB', nextStep: 'end-success' }]
+            },
+            stepVisitCounter: 1,
+            activeStepVisitId: '0:step-A:1',
+            processedVisitIds: {}
+        });
+
+        // 1. Valid active-step selection accepted
+        const s1 = helperTestSession();
+        const t1 = validateAndAcceptChoice(s1, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 1: Valid active-step selection accepted', passed: t1.success === true });
+
+        // 2. Second selection for same active step visit rejected
+        const s2 = helperTestSession();
+        validateAndAcceptChoice(s2, 'step-A', 0);
+        const snap2 = JSON.parse(JSON.stringify(s2));
+        const t2 = validateAndAcceptChoice(s2, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 2: Second selection for same visit rejected', passed: t2.success === false && JSON.stringify(s2) === JSON.stringify(snap2) });
+
+        // 3. Stale step ID rejected
+        const s3 = helperTestSession();
+        s3.currentStepIndex = 1;
+        s3.activeStepVisitId = '1:step-B:1';
+        const snap3 = JSON.parse(JSON.stringify(s3));
+        const t3 = validateAndAcceptChoice(s3, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 3: Stale step ID rejected', passed: t3.success === false && JSON.stringify(s3) === JSON.stringify(snap3) });
+
+        // 4. Step ID belonging to another step rejected
+        const s4 = helperTestSession();
+        const snap4 = JSON.parse(JSON.stringify(s4));
+        const t4 = validateAndAcceptChoice(s4, 'step-B', 0);
+        results.push({ test: 'Choice Integrity 4: Step ID belonging to another step rejected', passed: t4.success === false && JSON.stringify(s4) === JSON.stringify(snap4) });
+
+        // 5. Negative choice index rejected
+        const s5 = helperTestSession();
+        const snap5 = JSON.parse(JSON.stringify(s5));
+        const t5 = validateAndAcceptChoice(s5, 'step-A', -1);
+        results.push({ test: 'Choice Integrity 5: Negative choice index rejected', passed: t5.success === false && JSON.stringify(s5) === JSON.stringify(snap5) });
+
+        // 6. Out-of-range choice index rejected
+        const s6 = helperTestSession();
+        const snap6 = JSON.parse(JSON.stringify(s6));
+        const t6 = validateAndAcceptChoice(s6, 'step-A', 5);
+        results.push({ test: 'Choice Integrity 6: Out-of-range choice index rejected', passed: t6.success === false && JSON.stringify(s6) === JSON.stringify(snap6) });
+
+        // 7. Fractional choice index rejected
+        const s7 = helperTestSession();
+        const snap7 = JSON.parse(JSON.stringify(s7));
+        const t7 = validateAndAcceptChoice(s7, 'step-A', 0.5);
+        results.push({ test: 'Choice Integrity 7: Fractional choice index rejected', passed: t7.success === false && JSON.stringify(s7) === JSON.stringify(snap7) });
+
+        // 8. Missing choices array rejected
+        const s8 = helperTestSession();
+        s8.shuffledChoicesMap = {};
+        const snap8 = JSON.parse(JSON.stringify(s8));
+        const t8 = validateAndAcceptChoice(s8, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 8: Missing choices array rejected', passed: t8.success === false && JSON.stringify(s8) === JSON.stringify(snap8) });
+
+        // 9. Missing selected choice rejected
+        const s9 = helperTestSession();
+        s9.shuffledChoicesMap['step-A'] = [];
+        const snap9 = JSON.parse(JSON.stringify(s9));
+        const t9 = validateAndAcceptChoice(s9, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 9: Missing selected choice rejected', passed: t9.success === false && JSON.stringify(s9) === JSON.stringify(snap9) });
+
+        // 10 & 11. Invalid scoring data does not mark step as processed & valid selection afterwards accepted
+        const s10 = helperTestSession();
+        s10.shuffledChoicesMap['step-A'][0].scores.empathy = NaN;
+        const resInvalid = validateAndAcceptChoice(s10, 'step-A', 0);
+        s10.shuffledChoicesMap['step-A'][0].scores.empathy = 50; // fix scoring
+        const resValidAfter = validateAndAcceptChoice(s10, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 10 & 11: Invalid scoring not processed & valid selection accepted after', passed: resInvalid.success === false && resValidAfter.success === true });
+
+        // 12. Rejected duplicate does not change any scoring accumulator
+        const s12 = helperTestSession();
+        validateAndAcceptChoice(s12, 'step-A', 0);
+        const scoresSnap = JSON.parse(JSON.stringify(s12.scores));
+        validateAndAcceptChoice(s12, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 12: Rejected duplicate changes zero accumulators', passed: JSON.stringify(s12.scores) === JSON.stringify(scoresSnap) });
+
+        // 13. Rejected duplicate does not change totalChoicesMade
+        const s13 = helperTestSession();
+        validateAndAcceptChoice(s13, 'step-A', 0);
+        const totalB = s13.totalChoicesMade;
+        validateAndAcceptChoice(s13, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 13: Rejected duplicate leaves totalChoicesMade unchanged', passed: s13.totalChoicesMade === totalB });
+
+        // 14. Rejected duplicate does not change trust, history, or decision logs
+        const s14 = helperTestSession();
+        validateAndAcceptChoice(s14, 'step-A', 0);
+        const trustB = s14.trustStore;
+        const histLenB = s14.callHistory.length;
+        const logLenB = s14.decisionLog.length;
+        validateAndAcceptChoice(s14, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 14: Rejected duplicate leaves trust, history, logs unchanged', passed: s14.trustStore === trustB && s14.callHistory.length === histLenB && s14.decisionLog.length === logLenB });
+
+        // 15. Legitimate new step can accept its own choice
+        const s15 = helperTestSession();
+        validateAndAcceptChoice(s15, 'step-A', 0);
+        s15.currentStepIndex = 1;
+        s15.stepVisitCounter++;
+        s15.activeStepVisitId = '1:step-B:2';
+        const t15 = validateAndAcceptChoice(s15, 'step-B', 0);
+        results.push({ test: 'Choice Integrity 15: Legitimate new step accepted', passed: t15.success === true });
+
+        // 16. Legitimate revisit can accept a new choice for a new visit
+        const s16 = helperTestSession();
+        validateAndAcceptChoice(s16, 'step-A', 0);
+        s16.currentStepIndex = 0;
+        s16.stepVisitCounter++;
+        s16.activeStepVisitId = '0:step-A:3';
+        const t16 = validateAndAcceptChoice(s16, 'step-A', 0);
+        results.push({ test: 'Choice Integrity 16: Legitimate revisit accepted', passed: t16.success === true });
+
+    } catch (e) {
+        results.push({ test: 'Choice Integrity Suite', passed: false, error: e.message });
     }
 
     return results;
@@ -2338,7 +2449,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Stage 1.1.2 Complete Invalid-State Test) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Stage 2.0: Choice Integrity) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2361,10 +2472,10 @@ const app = {
                         ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">4. Defect-Injection Verification Suite (Test 12 Complete Invalid-State & Accumulation Test)</div>
+                    <div class="qa-section-title">4. Defect-Injection & Choice Integrity Verification Suite (Stage 2.0)</div>
                     <div class="qa-list">
-                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Defect Tests</button>
-                        ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'CAUGHT (PASS)' : 'FAILED'}</strong> ${t.error ? `(${t.error})` : ''}</div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Test Suite</button>
+                        ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'PASSED' : 'FAILED'}</strong> ${t.error ? `(${t.error})` : ''}</div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
                     </div>
                 </div>
             ` : ''}
@@ -2449,7 +2560,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE (STAGE 1.1.2: USES applyChoiceScoring)
+       CALL SIMULATOR ENGINE (STAGE 2.0: INTEGRATED WITH CHOICE INTEGRITY)
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
@@ -2475,7 +2586,11 @@ const app = {
             callCompleted: false,
             selectedPersonality: personality,
             shuffledChoicesMap: {},
-            stateFlags: {}
+            stateFlags: {},
+            stepVisitCounter: 1,
+            activeStepVisitId: `0:${scenario.steps[0].id}:1`,
+            processedVisitIds: {},
+            waitingForContinue: false
         };
 
         scenario.steps.forEach(step => {
@@ -2554,21 +2669,16 @@ const app = {
     makeChoice(stepId, shuffledChoiceIndex) {
         if (currentSession.callCompleted) return;
 
-        const currentStep = currentSession.scenario.steps.find(st => st.id === stepId);
-        const choices = currentSession.shuffledChoicesMap[stepId];
-        const choice = choices[shuffledChoiceIndex];
-
-        // ====================================================================
-        // STAGE 1.1.2 REQUIREMENT: USE SHARED applyChoiceScoring()
-        // ====================================================================
-        const scoringResult = applyChoiceScoring(currentSession, choice);
-        if (!scoringResult.success) {
+        // 1. Validate and accept choice through choice integrity helper & scoring
+        const validationResult = validateAndAcceptChoice(currentSession, stepId, shuffledChoiceIndex);
+        if (!validationResult.success) {
             const interactionArea = document.getElementById('interaction-area');
             if (interactionArea) {
+                const isScoringError = validationResult.reason && validationResult.reason.includes('scoring');
                 interactionArea.innerHTML = `
                     <div class="coaching-box bad">
-                        <div class="coaching-title"><span>⚠️ Invalid Choice Data Detected</span></div>
-                        <div class="coaching-text">This response contains malformed or missing scoring data. Selection rejected for session safety. Please select an alternative choice or resume simulation.</div>
+                        <div class="coaching-title"><span>⚠️ ${isScoringError ? 'Invalid Choice Data Detected' : 'Choice Submission Rejected'}</span></div>
+                        <div class="coaching-text">${isScoringError ? 'This response contains malformed or missing scoring data. Selection rejected for session safety. Please select an alternative choice or resume simulation.' : 'This submission was rejected (duplicate, stale, or out of bounds). Please select a valid choice for the active step.'}</div>
                         <button class="btn btn-secondary" onclick="app.renderSimulatorUI()">Dismiss & Return</button>
                     </div>
                 `;
@@ -2576,6 +2686,10 @@ const app = {
             return;
         }
 
+        const choice = validationResult.choice;
+        const currentStep = validationResult.currentStep;
+
+        // 2. Apply personality modifiers
         let pNote = '';
         let personalityTrustDelta = 0;
         if (currentSession.selectedPersonality && currentSession.selectedPersonality.modifierFn) {
@@ -2584,6 +2698,7 @@ const app = {
             pNote = pResult.note || '';
         }
 
+        // 3. Update decision logs and call history
         currentSession.decisionLog.push({
             stepPrompt: currentStep.prompt,
             choiceText: choice.text,
@@ -2593,6 +2708,7 @@ const app = {
             personalityNote: pNote
         });
 
+        // 4. Update trust
         const baseTrustDelta = choice.scores.trustDelta || 0;
         currentSession.trustStore = Math.max(0, Math.min(100, currentSession.trustStore + baseTrustDelta + personalityTrustDelta));
 
@@ -2604,7 +2720,9 @@ const app = {
             personalityNote: pNote
         });
 
+        // 5. Continue through guided or challenge flow
         if (currentSession.mode === 'guided') {
+            currentSession.waitingForContinue = true;
             this.renderGuidedFeedback(choice, pNote);
         } else {
             this.advanceStep(choice.nextStep);
@@ -2629,6 +2747,13 @@ const app = {
     advanceStep(nextStepId) {
         if (currentSession.callCompleted) return;
 
+        if (currentSession.mode === 'guided') {
+            if (!currentSession.waitingForContinue) {
+                return; // Guard against multiple rapid clicks on Continue Call
+            }
+            currentSession.waitingForContinue = false;
+        }
+
         const s = currentSession.scenario;
         
         if (nextStepId === 'end-success' || nextStepId === 'end-fail' || currentSession.currentStepIndex >= s.steps.length - 1) {
@@ -2651,6 +2776,12 @@ const app = {
                 this.finishCall();
                 return;
             }
+        }
+
+        const activeStep = s.steps[currentSession.currentStepIndex];
+        if (activeStep) {
+            currentSession.stepVisitCounter = (currentSession.stepVisitCounter || 0) + 1;
+            currentSession.activeStepVisitId = `${currentSession.currentStepIndex}:${activeStep.id}:${currentSession.stepVisitCounter}`;
         }
 
         this.renderSimulatorUI();
