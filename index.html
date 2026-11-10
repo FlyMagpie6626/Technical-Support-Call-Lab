@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Stage 3.0.1 Terminal Authorization)
+   TSCL 2.2 CORE APPLICATION ENGINE (Stage 3.0.2 Authorization & Test Integrity)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -719,6 +719,9 @@ let gameState = {
     leaderboard: []
 };
 
+// Private Closure-Managed Authorization Store (WeakMap tied strictly to session objects)
+const sessionAuthMap = new WeakMap();
+
 let currentSession = {
     mode: 'guided',
     scenario: null,
@@ -738,9 +741,6 @@ let currentSession = {
     totalChoicesMade: 0,
     callCompleted: false,
     outcome: null,
-    terminalAuthorized: false,
-    authorizedTerminalDestination: null,
-    terminalAuthorizationConsumed: false,
     selectedPersonality: null,
     shuffledChoicesMap: {},
     stateFlags: {},
@@ -1957,7 +1957,7 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 }
 
 /* ==========================================================================
-   STAGE 3.0.1 TERMINAL AUTHORIZATION & QA ISOLATION TEST SUITE (15 Tests)
+   STAGE 3.0.2 AUTHORIZATION & TEST ISOLATION SUITE (15 Tests)
    ========================================================================== */
 function runStage3OutcomeIntegrityTests() {
     const results = [];
@@ -1979,6 +1979,7 @@ function runStage3OutcomeIntegrityTests() {
     let removeItemAttemptCount = 0;
     let clearAttemptCount = 0;
     let storageMutationAttemptCount = 0;
+    let saveGameStateCallCount = 0;
 
     Storage.prototype.setItem = function(key, value) {
         setItemAttemptCount++;
@@ -1994,7 +1995,7 @@ function runStage3OutcomeIntegrityTests() {
     };
 
     window.saveGameState = () => {
-        storageMutationAttemptCount++;
+        saveGameStateCallCount++;
     };
     app.navigateTo = () => {};
     app.renderSimulatorUI = () => {};
@@ -2019,216 +2020,178 @@ function runStage3OutcomeIntegrityTests() {
             totalChoicesMade: 0,
             callCompleted: false,
             outcome: null,
-            terminalAuthorized: false,
-            authorizedTerminalDestination: null,
-            terminalAuthorizationConsumed: false,
             selectedPersonality: { name: 'Test' },
             shuffledChoicesMap: {
                 'step-1': [{ text: 'Choice 1', scores: { empathy: 80, acknowledgement: 80, reassurance: 80, ownership: 80, technical: 80, safety: 80 }, clarity: 80, feedback: 'FB', nextStep: targetNextStep }]
             }
         });
 
-        // 1. Valid accepted choice leading to end-success establishes success
+        // 1. Successful challenge choice establishes success
         try {
             const s = makeTestSession('challenge', 'end-success');
             currentSession = s;
-            validateAndAcceptChoice(s, 'step-1', 0);
-            s.terminalAuthorized = true;
-            s.authorizedTerminalDestination = 'end-success';
-            s.terminalAuthorizationConsumed = false;
-            app.advanceStep('end-success');
-            results.push({ test: '1. Valid accepted choice leading to end-success establishes success', passed: currentSession.outcome === 'success' && currentSession.callCompleted === true });
-        } catch (e) { results.push({ test: '1. Valid accepted choice leading to end-success establishes success', passed: false, error: e.message }); }
+            app.makeChoice('step-1', 0);
+            results.push({ test: '1. Successful challenge choice establishes success', passed: currentSession.outcome === 'success' && currentSession.callCompleted === true });
+        } catch (e) { results.push({ test: '1. Successful challenge choice establishes success', passed: false, error: e.message }); }
 
-        // 2. Valid accepted choice leading to end-fail establishes failure
+        // 2. Failed challenge choice establishes failure
         try {
             const s = makeTestSession('challenge', 'end-fail');
             currentSession = s;
-            validateAndAcceptChoice(s, 'step-1', 0);
-            s.terminalAuthorized = true;
-            s.authorizedTerminalDestination = 'end-fail';
-            s.terminalAuthorizationConsumed = false;
-            app.advanceStep('end-fail');
-            results.push({ test: '2. Valid accepted choice leading to end-fail establishes failure', passed: currentSession.outcome === 'fail' && currentSession.callCompleted === true });
-        } catch (e) { results.push({ test: '2. Valid accepted choice leading to end-fail establishes failure', passed: false, error: e.message }); }
+            app.makeChoice('step-1', 0);
+            results.push({ test: '2. Failed challenge choice establishes failure', passed: currentSession.outcome === 'fail' && currentSession.callCompleted === true });
+        } catch (e) { results.push({ test: '2. Failed challenge choice establishes failure', passed: false, error: e.message }); }
 
-        // 3. Direct advanceStep('end-success') without an accepted choice is rejected
+        // 3. Successful guided choice establishes success
+        try {
+            const s = makeTestSession('guided', 'end-success');
+            currentSession = s;
+            app.makeChoice('step-1', 0);
+            const waitingOk = s.waitingForContinue === true && s.outcome === null;
+            app.advanceStep('end-success');
+            results.push({ test: '3. Successful guided choice establishes success', passed: waitingOk && currentSession.outcome === 'success' && currentSession.callCompleted === true });
+        } catch (e) { results.push({ test: '3. Successful guided choice establishes success', passed: false, error: e.message }); }
+
+        // 4. Failed guided choice establishes failure
+        try {
+            const s = makeTestSession('guided', 'end-fail');
+            currentSession = s;
+            app.makeChoice('step-1', 0);
+            const waitingOk = s.waitingForContinue === true && s.outcome === null;
+            app.advanceStep('end-fail');
+            results.push({ test: '4. Failed guided choice establishes failure', passed: waitingOk && currentSession.outcome === 'fail' && currentSession.callCompleted === true });
+        } catch (e) { results.push({ test: '4. Failed guided choice establishes failure', passed: false, error: e.message }); }
+
+        // 5. Direct terminal advancement without a real accepted choice is rejected
         try {
             const s = makeTestSession('challenge', 'end-success');
             currentSession = s;
             app.advanceStep('end-success');
-            results.push({ test: '3. Direct advanceStep(\'end-success\') without accepted choice rejected', passed: currentSession.callCompleted === false && currentSession.outcome === null });
-        } catch (e) { results.push({ test: '3. Direct advanceStep(\'end-success\') without accepted choice rejected', passed: false, error: e.message }); }
+            results.push({ test: '5. Direct terminal advancement without accepted choice rejected', passed: currentSession.callCompleted === false && currentSession.outcome === null });
+        } catch (e) { results.push({ test: '5. Direct terminal advancement without accepted choice rejected', passed: false, error: e.message }); }
 
-        // 4. Direct advanceStep('end-fail') without an accepted choice is rejected
-        try {
-            const s = makeTestSession('challenge', 'end-fail');
-            currentSession = s;
-            app.advanceStep('end-fail');
-            results.push({ test: '4. Direct advanceStep(\'end-fail\') without accepted choice rejected', passed: currentSession.callCompleted === false && currentSession.outcome === null });
-        } catch (e) { results.push({ test: '4. Direct advanceStep(\'end-fail\') without accepted choice rejected', passed: false, error: e.message }); }
-
-        // 5. Direct finishCall() without terminal authorization is rejected
+        // 6. Direct finishCall() without valid private authorization is rejected
         try {
             const s = makeTestSession('challenge', 'end-success');
             currentSession = s;
             app.finishCall();
-            results.push({ test: '5. Direct finishCall() without terminal authorization rejected', passed: currentSession.callCompleted === false });
-        } catch (e) { results.push({ test: '5. Direct finishCall() without terminal authorization rejected', passed: false, error: e.message }); }
+            results.push({ test: '6. Direct finishCall() without valid private authorization rejected', passed: currentSession.callCompleted === false });
+        } catch (e) { results.push({ test: '6. Direct finishCall() without valid private authorization rejected', passed: false, error: e.message }); }
 
-        // 6. A mismatched accepted destination is rejected
+        // 7. Mismatched destination is rejected without changing session state
         try {
             const s = makeTestSession('challenge', 'end-fail');
             currentSession = s;
-            validateAndAcceptChoice(s, 'step-1', 0);
-            s.terminalAuthorized = true;
-            s.authorizedTerminalDestination = 'end-fail';
-            s.terminalAuthorizationConsumed = false;
-            app.advanceStep('end-success'); // Mismatched
-            results.push({ test: '6. Mismatched accepted destination rejected', passed: currentSession.callCompleted === false && currentSession.outcome === null });
-        } catch (e) { results.push({ test: '6. Mismatched accepted destination rejected', passed: false, error: e.message }); }
+            app.makeChoice('step-1', 0); // authorizes end-fail, but challenge auto-advances. Let's test manual mismatch via guided or modified auth
+            // To test mismatch, let's reset and use guided mode where choice leads to end-fail, but advanceStep requests end-success
+            const sM = makeTestSession('guided', 'end-fail');
+            currentSession = sM;
+            app.makeChoice('step-1', 0); // authorized for end-fail
+            app.advanceStep('end-success'); // mismatched request
+            results.push({ test: '7. Mismatched destination rejected without state mutation', passed: currentSession.callCompleted === false && currentSession.outcome === null });
+        } catch (e) { results.push({ test: '7. Mismatched destination rejected without state mutation', passed: false, error: e.message }); }
 
-        // 7. Reusing a consumed terminal authorization is rejected
+        // 8. Reusing consumed authorization is rejected
         try {
             const s = makeTestSession('challenge', 'end-success');
             currentSession = s;
-            validateAndAcceptChoice(s, 'step-1', 0);
-            s.terminalAuthorized = true;
-            s.authorizedTerminalDestination = 'end-success';
-            s.terminalAuthorizationConsumed = false;
-            app.advanceStep('end-success'); // First completion
+            app.makeChoice('step-1', 0);
             const firstCompleted = currentSession.callCompleted;
             
-            currentSession.callCompleted = false; // try to reset
+            currentSession.callCompleted = false;
+            currentSession.outcome = null;
             app.advanceStep('end-success'); // Reusing consumed auth
-            results.push({ test: '7. Reusing consumed terminal authorization rejected', passed: firstCompleted === true && currentSession.callCompleted === false });
-        } catch (e) { results.push({ test: '7. Reusing consumed terminal authorization rejected', passed: false, error: e.message }); }
+            results.push({ test: '8. Reusing consumed authorization rejected', passed: firstCompleted === true && currentSession.callCompleted === false });
+        } catch (e) { results.push({ test: '8. Reusing consumed authorization rejected', passed: false, error: e.message }); }
 
-        // 8. Success rewards are awarded only through valid accepted progression
+        // 9. A previous session’s authorization cannot complete a new session
+        try {
+            const s1 = makeTestSession('challenge', 'end-success');
+            const s2 = makeTestSession('challenge', 'end-success');
+            currentSession = s1;
+            app.makeChoice('step-1', 0); // authorizes s1
+            
+            currentSession = s2; // switch active session without makeChoice
+            app.advanceStep('end-success');
+            results.push({ test: '9. Previous session authorization cannot complete new session', passed: s2.callCompleted === false && s2.outcome === null });
+        } catch (e) { results.push({ test: '9. Previous session authorization cannot complete new session', passed: false, error: e.message }); }
+
+        // 10. Success awards XP and increments streak exactly once
         try {
             gameState.xp = 100;
+            gameState.streak = 2;
             const s = makeTestSession('challenge', 'end-success');
             currentSession = s;
-            validateAndAcceptChoice(s, 'step-1', 0);
-            s.terminalAuthorized = true;
-            s.authorizedTerminalDestination = 'end-success';
-            s.terminalAuthorizationConsumed = false;
-            app.advanceStep('end-success');
-            results.push({ test: '8. Success rewards awarded through valid progression', passed: gameState.xp > 100 });
-        } catch (e) { results.push({ test: '8. Success rewards awarded through valid progression', passed: false, error: e.message }); }
-        finally { gameState.xp = origGameState.xp; }
+            app.makeChoice('step-1', 0);
+            results.push({ test: '10. Success awards XP and increments streak exactly once', passed: gameState.xp > 100 && gameState.streak === 3 });
+        } catch (e) { results.push({ test: '10. Success awards XP and increments streak exactly once', passed: false, error: e.message }); }
+        finally { gameState.xp = origGameState.xp; gameState.streak = origGameState.streak; }
 
-        // 9. Failure rewards are withheld through valid accepted progression
+        // 11. Failure awards no success XP and does not increment streak
         try {
             gameState.xp = 100;
+            gameState.streak = 2;
             const s = makeTestSession('challenge', 'end-fail');
             currentSession = s;
-            validateAndAcceptChoice(s, 'step-1', 0);
-            s.terminalAuthorized = true;
-            s.authorizedTerminalDestination = 'end-fail';
-            s.terminalAuthorizationConsumed = false;
-            app.advanceStep('end-fail');
-            results.push({ test: '9. Failure rewards withheld through valid progression', passed: gameState.xp === 100 });
-        } catch (e) { results.push({ test: '9. Failure rewards withheld through valid progression', passed: false, error: e.message }); }
-        finally { gameState.xp = origGameState.xp; }
+            app.makeChoice('step-1', 0);
+            results.push({ test: '11. Failure awards no success XP and no streak increment', passed: gameState.xp === 100 && gameState.streak === 2 });
+        } catch (e) { results.push({ test: '11. Failure awards no success XP and no streak increment', passed: false, error: e.message }); }
+        finally { gameState.xp = origGameState.xp; gameState.streak = origGameState.streak; }
 
-        // 10. Guided success and failure both work
-        try {
-            const sGuided = makeTestSession('guided', 'end-success');
-            currentSession = sGuided;
-            validateAndAcceptChoice(sGuided, 'step-1', 0);
-            sGuided.terminalAuthorized = true;
-            sGuided.authorizedTerminalDestination = 'end-success';
-            sGuided.terminalAuthorizationConsumed = false;
-            sGuided.waitingForContinue = true;
-            sGuided.pendingContinuationDestination = 'end-success';
-            sGuided.continuationProcessed = false;
-            app.advanceStep('end-success');
-            const guidedSuccess = sGuided.outcome === 'success';
-
-            const sGuidedFail = makeTestSession('guided', 'end-fail');
-            currentSession = sGuidedFail;
-            validateAndAcceptChoice(sGuidedFail, 'step-1', 0);
-            sGuidedFail.terminalAuthorized = true;
-            sGuidedFail.authorizedTerminalDestination = 'end-fail';
-            sGuidedFail.terminalAuthorizationConsumed = false;
-            sGuidedFail.waitingForContinue = true;
-            sGuidedFail.pendingContinuationDestination = 'end-fail';
-            sGuidedFail.continuationProcessed = false;
-            app.advanceStep('end-fail');
-            const guidedFail = sGuidedFail.outcome === 'fail';
-
-            results.push({ test: '10. Guided success and failure both work', passed: guidedSuccess && guidedFail });
-        } catch (e) { results.push({ test: '10. Guided success and failure both work', passed: false, error: e.message }); }
-
-        // 11. Challenge success and failure both work
-        try {
-            const sChalSuccess = makeTestSession('challenge', 'end-success');
-            currentSession = sChalSuccess;
-            validateAndAcceptChoice(sChalSuccess, 'step-1', 0);
-            sChalSuccess.terminalAuthorized = true;
-            sChalSuccess.authorizedTerminalDestination = 'end-success';
-            sChalSuccess.terminalAuthorizationConsumed = false;
-            app.advanceStep('end-success');
-            const chalSuccess = sChalSuccess.outcome === 'success';
-
-            const sChalFail = makeTestSession('challenge', 'end-fail');
-            currentSession = sChalFail;
-            validateAndAcceptChoice(sChalFail, 'step-1', 0);
-            sChalFail.terminalAuthorized = true;
-            sChalFail.authorizedTerminalDestination = 'end-fail';
-            sChalFail.terminalAuthorizationConsumed = false;
-            app.advanceStep('end-fail');
-            const chalFail = sChalFail.outcome === 'fail';
-
-            results.push({ test: '11. Challenge success and failure both work', passed: chalSuccess && chalFail });
-        } catch (e) { results.push({ test: '11. Challenge success and failure both work', passed: false, error: e.message }); }
-
-        // 12. Invalid progression cannot complete or persist a call
+        // 12. Invalid progression cannot complete or persist
         try {
             const s = makeTestSession('challenge', 'end-success');
             currentSession = s;
-            app.advanceStep('invalid-step-id');
+            app.advanceStep('non-existent-step');
             app.finishCall();
-            results.push({ test: '12. Invalid progression cannot complete or persist call', passed: currentSession.callCompleted === false && currentSession.outcome === null });
-        } catch (e) { results.push({ test: '12. Invalid progression cannot complete or persist call', passed: false, error: e.message }); }
+            results.push({ test: '12. Invalid progression cannot complete or persist', passed: currentSession.callCompleted === false && currentSession.outcome === null });
+        } catch (e) { results.push({ test: '12. Invalid progression cannot complete or persist', passed: false, error: e.message }); }
 
-        // 13. Final array position with available choices does not bypass those choices
+        // 13. Actual final array position with available choices still displays and accepts those choices
         try {
             const s = makeTestSession('challenge', 'end-success');
-            s.currentStepIndex = 0; // step-1 has choices and happens to be last in a short scenario or tested
-            const currentStep = s.scenario.steps[s.currentStepIndex];
-            const hasChoices = currentStep && Array.isArray(currentStep.choices) && currentStep.choices.length > 0;
-            results.push({ test: '13. Final array position with choices does not bypass choices', passed: hasChoices === true });
-        } catch (e) { results.push({ test: '13. Final array position with choices does not bypass choices', passed: false, error: e.message }); }
+            // Make step-1 the ONLY step and final element in steps array, but containing choices
+            s.scenario.steps = [
+                { id: 'final-step-with-choices', prompt: 'Final Step Choices', choices: [{ text: 'Final Choice', scores: { empathy: 80, acknowledgement: 80, reassurance: 80, ownership: 80, technical: 80, safety: 80 }, clarity: 80, feedback: 'FB', nextStep: 'end-success' }] }
+            ];
+            s.currentStepIndex = 0;
+            s.shuffledChoicesMap = {
+                'final-step-with-choices': [{ text: 'Final Choice', scores: { empathy: 80, acknowledgement: 80, reassurance: 80, ownership: 80, technical: 80, safety: 80 }, clarity: 80, feedback: 'FB', nextStep: 'end-success' }]
+            };
+            currentSession = s;
+            const stepBefore = s.scenario.steps[s.currentStepIndex];
+            const hasChoices = stepBefore && Array.isArray(stepBefore.choices) && stepBefore.choices.length > 0;
+            
+            app.makeChoice('final-step-with-choices', 0);
+            results.push({ test: '13. Final array position with choices displays and accepts choices', passed: hasChoices === true && currentSession.outcome === 'success' });
+        } catch (e) { results.push({ test: '13. Final array position with choices displays and accepts choices', passed: false, error: e.message }); }
 
-        // 14. A non-terminal dead end cannot silently become success or failure
+        // 14. A non-terminal dead end cannot complete or establish an outcome
         try {
             const s = makeTestSession('challenge', 'end-success');
-            s.scenario.steps[0].choices = []; // remove choices to make it a dead end
+            s.scenario.steps[0].choices = [];
             s.shuffledChoicesMap['step-1'] = [];
             currentSession = s;
             app.finishCall();
-            results.push({ test: '14. Non-terminal dead end cannot silently become success or failure', passed: currentSession.callCompleted === false && currentSession.outcome === null });
-        } catch (e) { results.push({ test: '14. Non-terminal dead end cannot silently become success or failure', passed: false, error: e.message }); }
+            results.push({ test: '14. Non-terminal dead end cannot complete or establish outcome', passed: currentSession.callCompleted === false && currentSession.outcome === null });
+        } catch (e) { results.push({ test: '14. Non-terminal dead end cannot complete or establish outcome', passed: false, error: e.message }); }
 
-        // 15. Repeated completion cannot duplicate rewards, history, or persistence
+        // 15. Repeated completion cannot duplicate XP, streak, history, leaderboard entries, or persistence
         try {
             gameState.xp = 200;
+            gameState.streak = 1;
             const s = makeTestSession('challenge', 'end-success');
             currentSession = s;
-            validateAndAcceptChoice(s, 'step-1', 0);
-            s.terminalAuthorized = true;
-            s.authorizedTerminalDestination = 'end-success';
-            s.terminalAuthorizationConsumed = false;
-            app.advanceStep('end-success');
+            app.makeChoice('step-1', 0);
             const xpAfterFirst = gameState.xp;
+            const streakAfterFirst = gameState.streak;
+            const persistCallsAfterFirst = saveGameStateCallCount;
 
             // Try finishing again
             app.finishCall();
-            results.push({ test: '15. Repeated completion cannot duplicate rewards', passed: gameState.xp === xpAfterFirst });
-        } catch (e) { results.push({ test: '15. Repeated completion cannot duplicate rewards', passed: false, error: e.message }); }
-        finally { gameState.xp = origGameState.xp; }
+            results.push({ test: '15. Repeated completion cannot duplicate rewards or persistence', passed: gameState.xp === xpAfterFirst && gameState.streak === streakAfterFirst && saveGameStateCallCount === persistCallsAfterFirst });
+        } catch (e) { results.push({ test: '15. Repeated completion cannot duplicate rewards or persistence', passed: false, error: e.message }); }
+        finally { gameState.xp = origGameState.xp; gameState.streak = origGameState.streak; }
 
     } catch (e) {
         results.push({ test: 'Test Suite General Execution Error', passed: false, error: e.message });
@@ -2487,7 +2450,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Stage 3.0.1 Terminal Authorization) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Stage 3.0.2 Authorization & Test Integrity) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2503,9 +2466,9 @@ const app = {
                         ${qaReport.criticalErrors.length === 0 ? '<span style="color: var(--accent-emerald);">None detected (Passed)</span>' : qaReport.criticalErrors.map(e => `• ${e}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">3. Stage 3.0.1 Terminal Authorization & QA Isolation Suite (15 Tests)</div>
+                    <div class="qa-section-title">3. Stage 3.0.2 Authorization & Test Isolation Suite (15 Tests)</div>
                     <div class="qa-list">
-                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runStage3TestsFromUI()">Run Stage 3.0.1 Test Suite</button>
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runStage3TestsFromUI()">Run Stage 3.0.2 Test Suite</button>
                         ${this.stage3TestResults ? this.stage3TestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'PASSED' : 'FAILED'}</strong> ${t.error ? `(${t.error})` : ''}</div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
                     </div>
                 </div>
@@ -2591,7 +2554,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE (Stage 3.0.1 Terminal Authorization)
+       CALL SIMULATOR ENGINE (Stage 3.0.2 Authorization)
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
@@ -2616,9 +2579,6 @@ const app = {
             totalChoicesMade: 0,
             callCompleted: false,
             outcome: null,
-            terminalAuthorized: false,
-            authorizedTerminalDestination: null,
-            terminalAuthorizationConsumed: false,
             selectedPersonality: personality,
             shuffledChoicesMap: {},
             stateFlags: {},
@@ -2745,9 +2705,10 @@ const app = {
         const currentStep = validationResult.currentStep;
 
         if (choice.nextStep === 'end-success' || choice.nextStep === 'end-fail') {
-            currentSession.terminalAuthorized = true;
-            currentSession.authorizedTerminalDestination = choice.nextStep;
-            currentSession.terminalAuthorizationConsumed = false;
+            sessionAuthMap.set(currentSession, {
+                destination: choice.nextStep,
+                consumed: false
+            });
         }
 
         let pNote = '';
@@ -2806,6 +2767,7 @@ const app = {
     advanceStep(nextStepId) {
         if (currentSession.callCompleted) return;
 
+        // 1. Strict Validation Reordering: Validate guided and terminal auth prerequisites BEFORE any state mutation
         if (currentSession.mode === 'guided') {
             if (!currentSession.waitingForContinue || currentSession.continuationProcessed) {
                 return;
@@ -2813,36 +2775,45 @@ const app = {
             if (nextStepId !== currentSession.pendingContinuationDestination) {
                 return;
             }
+        }
+
+        if (nextStepId === 'end-success' || nextStepId === 'end-fail') {
+            const authRecord = sessionAuthMap.get(currentSession);
+            if (!authRecord || authRecord.consumed || authRecord.destination !== nextStepId) {
+                return; // Rejected: unauthorized, mismatched, or already consumed
+            }
+        } else {
+            const s = currentSession.scenario;
+            const nextIdx = s.steps.findIndex(st => st.id === nextStepId);
+            if (nextIdx === -1) {
+                return;
+            }
+        }
+
+        // 2. Validated: Safe to proceed with state mutations & consumption
+        if (currentSession.mode === 'guided') {
             currentSession.waitingForContinue = false;
             currentSession.continuationProcessed = true;
             currentSession.pendingContinuationDestination = null;
         }
 
-        const s = currentSession.scenario;
-        
         if (nextStepId === 'end-success' || nextStepId === 'end-fail') {
-            if (!currentSession.terminalAuthorized || currentSession.terminalAuthorizationConsumed || currentSession.authorizedTerminalDestination !== nextStepId) {
-                return; // Rejected: unauthorized or mismatched terminal transition
-            }
-            currentSession.terminalAuthorizationConsumed = true;
-            currentSession.terminalAuthorized = false;
+            const authRecord = sessionAuthMap.get(currentSession);
+            authRecord.consumed = true; // Consume exactly once
             currentSession.outcome = (nextStepId === 'end-success' ? 'success' : 'fail');
             this.finishCall();
             return;
         }
 
+        const s = currentSession.scenario;
         const nextIdx = s.steps.findIndex(st => st.id === nextStepId);
-        if (nextIdx !== -1) {
-            currentSession.currentStepIndex = nextIdx;
-            const nextStepObj = s.steps[nextIdx];
-            currentSession.callHistory.push({
-                speaker: 'customer',
-                text: nextStepObj.prompt,
-                stepId: nextStepObj.id
-            });
-        } else {
-            return;
-        }
+        currentSession.currentStepIndex = nextIdx;
+        const nextStepObj = s.steps[nextIdx];
+        currentSession.callHistory.push({
+            speaker: 'customer',
+            text: nextStepObj.prompt,
+            stepId: nextStepObj.id
+        });
 
         const activeStep = s.steps[currentSession.currentStepIndex];
         if (activeStep) {
@@ -2854,15 +2825,17 @@ const app = {
     },
 
     /* ==========================================================================
-       FINISH CALL & RESULTS (Stage 3.0.1 Terminal Authorization)
+       FINISH CALL & RESULTS (Stage 3.0.2 Authorization)
        ========================================================================== */
     finishCall() {
         if (currentSession.callCompleted) return;
-        if (!currentSession.terminalAuthorizationConsumed || (currentSession.outcome !== 'success' && currentSession.outcome !== 'fail')) {
-            return; // Reject unauthorized or invalid outcome
+        
+        const authRecord = sessionAuthMap.get(currentSession);
+        if (!authRecord || !authRecord.consumed || (currentSession.outcome !== 'success' && currentSession.outcome !== 'fail')) {
+            return; // Reject unauthorized or invalid outcomes
         }
+        
         currentSession.callCompleted = true;
-
         const outcome = currentSession.outcome;
 
         const totalChoices = Math.max(1, currentSession.totalChoicesMade);
