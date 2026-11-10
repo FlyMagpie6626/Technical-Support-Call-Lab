@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Phase 1.1: QA Edge-Case Corrections)
+   TSCL 2.2 CORE APPLICATION ENGINE (Phase 1.2: QA Test Reliability Fix)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -1672,7 +1672,7 @@ function shuffleArray(array) {
 }
 
 /* ==========================================================================
-   PHASE 1.1: DEVELOPER QA ENGINE (EDGE-CASE CORRECTIONS)
+   PHASE 1.2: DEVELOPER QA ENGINE (RELIABILITY & ISOLATION FIXES)
    ========================================================================== */
 function runDeveloperQAReport(customScenarios = null, customPhrase = null, customPersonalities = null) {
     const scenarios = customScenarios || SCENARIOS;
@@ -1736,8 +1736,10 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 
         const stepIds = new Set();
         const validStepIdSet = new Set(s.steps.map(st => st.id));
-        validStepIdSet.add('end-success');
-        validStepIdSet.add('end-fail');
+        
+        // ISSUE 2 CORRECTION: Only accept end-success or end-fail if the corresponding terminal node actually exists in s.steps
+        if (s.steps.some(st => st.id === 'end-success')) validStepIdSet.add('end-success');
+        if (s.steps.some(st => st.id === 'end-fail')) validStepIdSet.add('end-fail');
 
         s.steps.forEach((st, stIdx) => {
             if (!st.id) {
@@ -1752,7 +1754,6 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                 report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id || stIdx}" is missing a step prompt.`);
             }
 
-            // CORRECTION 1: Only explicitly recognized terminal IDs qualify as terminal steps.
             const isTerminal = st.id === 'end-success' || st.id === 'end-fail';
 
             if (!isTerminal) {
@@ -1788,7 +1789,6 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                             });
                         }
 
-                        // CORRECTION 5: Clearly distinguish 6-dimensional scenario scoring vs. clarity scoring completeness
                         if (c.clarity === undefined || typeof c.clarity !== 'number') {
                             hasCompleteClarity = false;
                             report.warnings.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} has missing or invalid clarity value.`);
@@ -1874,7 +1874,6 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                 }
             });
 
-            // CORRECTION 4: Detect when no choice has score >= 100 or when multiple choices have score >= 100
             if (optimalCount === 0) {
                 report.criticalErrors.push(`Phrase Memory exercise "${ex.id}" has no choice with a score of 100 or higher (no optimal answer).`);
             } else if (optimalCount > 1) {
@@ -1949,17 +1948,28 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 }
 
 /* ==========================================================================
-   AUTOMATED DEFECT-INJECTION TEST RUNNER (PHASE 1.1)
+   AUTOMATED DEFECT-INJECTION TEST RUNNER (PHASE 1.2 ISOLATED)
    ========================================================================== */
 function runQADefectInjectionTests() {
     const results = [];
 
-    // Original 6 tests
+    // Helper for safe isolation of scenarios & phrase memory
+    const getIsolatedScenarios = () => JSON.parse(JSON.stringify(SCENARIOS));
+    const getIsolatedPhrase = () => JSON.parse(JSON.stringify(PHRASE_MEMORY_EXERCISES));
+    // Helper for safe isolation of personalities preserving functions
+    const getIsolatedPersonalities = () => CUSTOMER_PERSONALITIES.map(p => ({
+        id: p.id,
+        name: p.name,
+        moodMod: p.moodMod,
+        prefixNote: p.prefixNote,
+        modifierFn: p.modifierFn
+    }));
+
     // 1. Duplicate Scenario ID
     try {
-        const dupScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        const dupScenarios = getIsolatedScenarios();
         dupScenarios[1].id = dupScenarios[0].id;
-        const rep = runDeveloperQAReport(dupScenarios, null, null);
+        const rep = runDeveloperQAReport(dupScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
         const caught = rep.criticalErrors.some(err => err.includes('Duplicate scenario ID'));
         results.push({ test: 'Duplicate Scenario ID', passed: caught });
     } catch (e) {
@@ -1968,9 +1978,9 @@ function runQADefectInjectionTests() {
 
     // 2. Missing Choice Feedback Field
     try {
-        const missingFeedbackScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        const missingFeedbackScenarios = getIsolatedScenarios();
         delete missingFeedbackScenarios[0].steps[0].choices[0].feedback;
-        const rep = runDeveloperQAReport(missingFeedbackScenarios, null, null);
+        const rep = runDeveloperQAReport(missingFeedbackScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
         const caught = rep.criticalErrors.some(err => err.includes('missing feedback'));
         results.push({ test: 'Missing Choice Feedback', passed: caught });
     } catch (e) {
@@ -1979,9 +1989,9 @@ function runQADefectInjectionTests() {
 
     // 3. Missing Scoring Dimension
     try {
-        const missingDimScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        const missingDimScenarios = getIsolatedScenarios();
         delete missingDimScenarios[0].steps[0].choices[0].scores.empathy;
-        const rep = runDeveloperQAReport(missingDimScenarios, null, null);
+        const rep = runDeveloperQAReport(missingDimScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
         const caught = rep.criticalErrors.some(err => err.includes('missing scoring dimension: "empathy"'));
         results.push({ test: 'Missing Scoring Dimension', passed: caught });
     } catch (e) {
@@ -1990,9 +2000,9 @@ function runQADefectInjectionTests() {
 
     // 4. Invalid Branch Destination
     try {
-        const invalidBranchScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        const invalidBranchScenarios = getIsolatedScenarios();
         invalidBranchScenarios[0].steps[0].choices[0].nextStep = 'nonexistent-step-id';
-        const rep = runDeveloperQAReport(invalidBranchScenarios, null, null);
+        const rep = runDeveloperQAReport(invalidBranchScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
         const caught = rep.criticalErrors.some(err => err.includes('points to invalid nextStep destination'));
         results.push({ test: 'Invalid Branch Destination', passed: caught });
     } catch (e) {
@@ -2001,9 +2011,9 @@ function runQADefectInjectionTests() {
 
     // 5. Phrase Memory Exercise with No Choices
     try {
-        const emptyPm = JSON.parse(JSON.stringify(PHRASE_MEMORY_EXERCISES));
+        const emptyPm = getIsolatedPhrase();
         emptyPm[0].choices = [];
-        const rep = runDeveloperQAReport(null, emptyPm, null);
+        const rep = runDeveloperQAReport(getIsolatedScenarios(), emptyPm, getIsolatedPersonalities());
         const caught = rep.criticalErrors.some(err => err.includes('has missing or empty choice array'));
         results.push({ test: 'Phrase Memory Empty Choice Array', passed: caught });
     } catch (e) {
@@ -2012,33 +2022,49 @@ function runQADefectInjectionTests() {
 
     // 6. Personality Without Valid Modifier Function
     try {
-        const badPers = JSON.parse(JSON.stringify(CUSTOMER_PERSONALITIES));
+        const badPers = getIsolatedPersonalities();
         badPers[0].modifierFn = 'not-a-function';
-        const rep = runDeveloperQAReport(null, null, badPers);
+        const rep = runDeveloperQAReport(getIsolatedScenarios(), getIsolatedPhrase(), badPers);
         const caught = rep.criticalErrors.some(err => err.includes('missing a valid modifierFn function'));
         results.push({ test: 'Personality Without Valid Modifier', passed: caught });
     } catch (e) {
         results.push({ test: 'Personality Without Valid Modifier', passed: false, error: e.message });
     }
 
-    // --- New Phase 1.1 Tests ---
     // 7. Ordinary step with empty choices array (must fail)
     try {
-        const testScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        const testScenarios = getIsolatedScenarios();
         testScenarios[0].steps[0].choices = [];
         testScenarios[0].steps[0].id = 'ordinary-step-empty';
-        const rep = runDeveloperQAReport(testScenarios, null, null);
+        const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
         const caught = rep.criticalErrors.some(err => err.includes('is an ordinary step with missing or empty choices array'));
         results.push({ test: 'Ordinary Step with Empty Choices', passed: caught });
     } catch (e) {
         results.push({ test: 'Ordinary Step with Empty Choices', passed: false, error: e.message });
     }
 
-    // 8. Valid terminal step with empty choices (must pass)
+    // 8. ISSUE 1 CORRECTION: Valid terminal step with empty choices (must pass via isolated scenario)
     try {
-        const testScenarios = JSON.parse(JSON.stringify(SCENARIOS));
-        testScenarios[0].steps.push({ id: 'end-success', prompt: 'Success', choices: [] });
-        const rep = runDeveloperQAReport(testScenarios, null, null);
+        const isolatedTerminalScenario = [{
+            id: 'iso-term-test',
+            title: 'Terminal Test Scenario',
+            category: 'Test',
+            difficulty: 'Easy',
+            customer: { name: 'Test User', opening: 'Hello' },
+            steps: [
+                {
+                    id: 'step-1',
+                    prompt: 'Choose next',
+                    choices: [{ text: 'Go', feedback: 'FB', scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 90 }, clarity: 90, nextStep: 'end-success' }]
+                },
+                {
+                    id: 'end-success',
+                    prompt: 'Call successfully resolved.',
+                    choices: []
+                }
+            ]
+        }];
+        const rep = runDeveloperQAReport(isolatedTerminalScenario, getIsolatedPhrase(), getIsolatedPersonalities());
         const hasTerminalError = rep.criticalErrors.some(err => err.includes('end-success') || err.includes('is an ordinary step'));
         results.push({ test: 'Valid Terminal Step with Empty Choices', passed: !hasTerminalError });
     } catch (e) {
@@ -2047,9 +2073,9 @@ function runQADefectInjectionTests() {
 
     // 9. Duplicate personality ID
     try {
-        const testPers = JSON.parse(JSON.stringify(CUSTOMER_PERSONALITIES));
+        const testPers = getIsolatedPersonalities();
         testPers[1].id = testPers[0].id;
-        const rep = runDeveloperQAReport(null, null, testPers);
+        const rep = runDeveloperQAReport(getIsolatedScenarios(), getIsolatedPhrase(), testPers);
         const caught = rep.criticalErrors.some(err => err.includes('Duplicate personality ID found'));
         results.push({ test: 'Duplicate Personality ID', passed: caught });
     } catch (e) {
@@ -2058,9 +2084,9 @@ function runQADefectInjectionTests() {
 
     // 10. Personality modifier returning NaN trustDelta
     try {
-        const testPers = JSON.parse(JSON.stringify(CUSTOMER_PERSONALITIES));
+        const testPers = getIsolatedPersonalities();
         testPers[0].modifierFn = () => ({ trustDelta: NaN, note: 'NaN test' });
-        const rep = runDeveloperQAReport(null, null, testPers);
+        const rep = runDeveloperQAReport(getIsolatedScenarios(), getIsolatedPhrase(), testPers);
         const caught = rep.criticalErrors.some(err => err.includes('returned invalid trustDelta'));
         results.push({ test: 'Personality Modifier NaN trustDelta', passed: caught });
     } catch (e) {
@@ -2069,9 +2095,9 @@ function runQADefectInjectionTests() {
 
     // 11. Phrase Memory exercise with no optimal answer (score < 100 for all)
     try {
-        const testPm = JSON.parse(JSON.stringify(PHRASE_MEMORY_EXERCISES));
+        const testPm = getIsolatedPhrase();
         testPm[0].choices.forEach(c => c.score = 50);
-        const rep = runDeveloperQAReport(null, testPm, null);
+        const rep = runDeveloperQAReport(getIsolatedScenarios(), testPm, getIsolatedPersonalities());
         const caught = rep.criticalErrors.some(err => err.includes('has no choice with a score of 100 or higher'));
         results.push({ test: 'Phrase Memory No Optimal Answer', passed: caught });
     } catch (e) {
@@ -2080,10 +2106,10 @@ function runQADefectInjectionTests() {
 
     // 12. Phrase Memory exercise with multiple optimal answers (>1 with score >= 100)
     try {
-        const testPm = JSON.parse(JSON.stringify(PHRASE_MEMORY_EXERCISES));
+        const testPm = getIsolatedPhrase();
         testPm[0].choices[0].score = 100;
         testPm[0].choices[1].score = 100;
-        const rep = runDeveloperQAReport(null, testPm, null);
+        const rep = runDeveloperQAReport(getIsolatedScenarios(), testPm, getIsolatedPersonalities());
         const caught = rep.warnings.some(warn => warn.includes('has multiple choices') && warn.includes('with a score of 100 or higher'));
         results.push({ test: 'Phrase Memory Multiple Optimal Answers', passed: caught });
     } catch (e) {
@@ -2092,13 +2118,61 @@ function runQADefectInjectionTests() {
 
     // 13. Missing clarity value
     try {
-        const testScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        const testScenarios = getIsolatedScenarios();
         delete testScenarios[0].steps[0].choices[0].clarity;
-        const rep = runDeveloperQAReport(testScenarios, null, null);
+        const rep = runDeveloperQAReport(testScenarios, getIsolatedPhrase(), getIsolatedPersonalities());
         const caught = rep.warnings.some(warn => warn.includes('has missing or invalid clarity value'));
         results.push({ test: 'Missing Clarity Value Warning', passed: caught });
     } catch (e) {
         results.push({ test: 'Missing Clarity Value Warning', passed: false, error: e.message });
+    }
+
+    // 14. ISSUE 2 TEST: Missing end-success destination error
+    try {
+        const missingEndSuccessScenario = [{
+            id: 'iso-missing-success',
+            title: 'Missing Success Terminal',
+            category: 'Test',
+            difficulty: 'Easy',
+            customer: { name: 'Test', opening: 'Hi' },
+            steps: [
+                {
+                    id: 'step-1',
+                    prompt: 'Prompt',
+                    choices: [{ text: 'Choice', feedback: 'FB', scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 90 }, clarity: 90, nextStep: 'end-success' }]
+                }
+                // end-success node is omitted intentionally
+            ]
+        }];
+        const rep = runDeveloperQAReport(missingEndSuccessScenario, getIsolatedPhrase(), getIsolatedPersonalities());
+        const caught = rep.criticalErrors.some(err => err.includes('points to invalid nextStep destination: "end-success"'));
+        results.push({ test: 'Missing end-success Destination Rejected', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Missing end-success Destination Rejected', passed: false, error: e.message });
+    }
+
+    // 15. ISSUE 2 TEST: Missing end-fail destination error
+    try {
+        const missingEndFailScenario = [{
+            id: 'iso-missing-fail',
+            title: 'Missing Fail Terminal',
+            category: 'Test',
+            difficulty: 'Easy',
+            customer: { name: 'Test', opening: 'Hi' },
+            steps: [
+                {
+                    id: 'step-1',
+                    prompt: 'Prompt',
+                    choices: [{ text: 'Choice', feedback: 'FB', scores: { empathy: 90, acknowledgement: 90, reassurance: 90, ownership: 90, technical: 90, safety: 90 }, clarity: 90, nextStep: 'end-fail' }]
+                }
+                // end-fail node is omitted intentionally
+            ]
+        }];
+        const rep = runDeveloperQAReport(missingEndFailScenario, getIsolatedPhrase(), getIsolatedPersonalities());
+        const caught = rep.criticalErrors.some(err => err.includes('points to invalid nextStep destination: "end-fail"'));
+        results.push({ test: 'Missing end-fail Destination Rejected', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Missing end-fail Destination Rejected', passed: false, error: e.message });
     }
 
     return results;
@@ -2335,7 +2409,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Phase 1.1 Corrected) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Phase 1.2 Reliability Fix) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2359,7 +2433,7 @@ const app = {
                         ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">4. Defect-Injection Verification Suite (13 Tests)</div>
+                    <div class="qa-section-title">4. Defect-Injection Verification Suite (15 Tests)</div>
                     <div class="qa-list">
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Defect Tests</button>
                         ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'CAUGHT (PASS)' : 'FAILED'}</strong></div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
