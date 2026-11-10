@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Phase 1: Upgraded Developer QA Engine)
+   TSCL 2.2 CORE APPLICATION ENGINE (Phase 1.1: QA Edge-Case Corrections)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -1672,7 +1672,7 @@ function shuffleArray(array) {
 }
 
 /* ==========================================================================
-   PHASE 1: UPGRADED DEVELOPER QA ENGINE
+   PHASE 1.1: DEVELOPER QA ENGINE (EDGE-CASE CORRECTIONS)
    ========================================================================== */
 function runDeveloperQAReport(customScenarios = null, customPhrase = null, customPersonalities = null) {
     const scenarios = customScenarios || SCENARIOS;
@@ -1690,6 +1690,8 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
             totalChoicesInspected: 0,
             completeScoringChoices: 0,
             missingScoringChoices: 0,
+            completeClarityChoices: 0,
+            missingClarityChoices: 0,
             personalityCount: personalities.length,
             answerPositionStats: {
                 scenarios: { pos1: 0, pos2: 0, pos3: 0, other: 0, total: 0 },
@@ -1750,11 +1752,12 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                 report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id || stIdx}" is missing a step prompt.`);
             }
 
-            const isTerminal = st.id === 'end-success' || st.id === 'end-fail' || (st.choices && st.choices.length === 0);
+            // CORRECTION 1: Only explicitly recognized terminal IDs qualify as terminal steps.
+            const isTerminal = st.id === 'end-success' || st.id === 'end-fail';
 
             if (!isTerminal) {
                 if (!st.choices || !Array.isArray(st.choices) || st.choices.length === 0) {
-                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}" requires choice arrays but has none.`);
+                    report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}" is an ordinary step with missing or empty choices array.`);
                 } else {
                     let maxScoreInStep = -1;
                     let bestChoicePos = 0;
@@ -1762,6 +1765,7 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                     st.choices.forEach((c, cIdx) => {
                         report.informational.totalChoicesInspected++;
                         let hasCompleteScores = true;
+                        let hasCompleteClarity = true;
 
                         if (!c.text || typeof c.text !== 'string' || c.text.trim() === '') {
                             report.criticalErrors.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} is missing choice text.`);
@@ -1784,7 +1788,9 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                             });
                         }
 
+                        // CORRECTION 5: Clearly distinguish 6-dimensional scenario scoring vs. clarity scoring completeness
                         if (c.clarity === undefined || typeof c.clarity !== 'number') {
+                            hasCompleteClarity = false;
                             report.warnings.push(`Scenario "${s.id}", Step "${st.id}", Choice ${cIdx} has missing or invalid clarity value.`);
                         }
 
@@ -1792,6 +1798,12 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                             report.informational.completeScoringChoices++;
                         } else {
                             report.informational.missingScoringChoices++;
+                        }
+
+                        if (hasCompleteClarity) {
+                            report.informational.completeClarityChoices++;
+                        } else {
+                            report.informational.missingClarityChoices++;
                         }
 
                         const choiceScoreSum = (c.scores?.empathy || 0) + (c.scores?.technical || 0) + (c.scores?.safety || 0);
@@ -1843,7 +1855,7 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
             report.criticalErrors.push(`Phrase Memory exercise "${ex.id || exIdx}" has missing or empty choice array.`);
         } else {
             let optimalPos = 0;
-            let foundOptimal = false;
+            let optimalCount = 0;
 
             ex.choices.forEach((c, cIdx) => {
                 if (!c.text || typeof c.text !== 'string' || c.text.trim() === '') {
@@ -1854,11 +1866,20 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
                 }
                 if (c.score === undefined || typeof c.score !== 'number') {
                     report.criticalErrors.push(`Phrase Memory "${ex.id}", Choice ${cIdx} is missing score value.`);
-                } else if (c.score >= 100 && !foundOptimal) {
-                    optimalPos = cIdx + 1;
-                    foundOptimal = true;
+                } else if (c.score >= 100) {
+                    optimalCount++;
+                    if (optimalCount === 1) {
+                        optimalPos = cIdx + 1;
+                    }
                 }
             });
+
+            // CORRECTION 4: Detect when no choice has score >= 100 or when multiple choices have score >= 100
+            if (optimalCount === 0) {
+                report.criticalErrors.push(`Phrase Memory exercise "${ex.id}" has no choice with a score of 100 or higher (no optimal answer).`);
+            } else if (optimalCount > 1) {
+                report.warnings.push(`Phrase Memory exercise "${ex.id}" has multiple choices (${optimalCount}) with a score of 100 or higher.`);
+            }
 
             report.informational.answerPositionStats.phraseMemory.total++;
             if (optimalPos === 1) report.informational.answerPositionStats.phraseMemory.pos1++;
@@ -1872,19 +1893,24 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
     if (scnTotal > 0) {
         const p1Ratio = report.informational.answerPositionStats.scenarios.pos1 / scnTotal;
         if (p1Ratio > 0.6) {
-            report.warnings.push(`Positional Imbalance Warning: ${Math.round(p1Ratio * 100)}% of scenario optimal choices are in Position 1.`);
+            report.warnings.push(`Positional Imbalance Warning: ${Math.round(p1Ratio * 100)}% of scenario score-based optimal-answer estimates are in Position 1.`);
         }
     }
 
     // 3. Customer Personality Integrity
     const expectedPersonalities = ['impatient', 'anxious', 'skeptical', 'angry', 'confused', 'cooperative'];
     const foundPersonalityIds = new Set();
+    const personalityIdCounts = {};
 
     personalities.forEach((p, pIdx) => {
         if (!p.id) {
             report.criticalErrors.push(`Personality index ${pIdx} is missing an ID.`);
         } else {
             foundPersonalityIds.add(p.id);
+            personalityIdCounts[p.id] = (personalityIdCounts[p.id] || 0) + 1;
+            if (personalityIdCounts[p.id] > 1) {
+                report.criticalErrors.push(`Duplicate personality ID found: "${p.id}".`);
+            }
         }
 
         if (!p.name || typeof p.name !== 'string') {
@@ -1897,8 +1923,15 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
             try {
                 const testChoice = { text: "Short test text", scores: { empathy: 90, technical: 95, safety: 100, ownership: 95, reassurance: 90 } };
                 const result = p.modifierFn(testChoice, 70);
-                if (!result || typeof result !== 'object' || typeof result.trustDelta !== 'number' || typeof result.note !== 'string') {
-                    report.warnings.push(`Personality "${p.id}" modifierFn returned malformed result structure.`);
+                if (!result || typeof result !== 'object') {
+                    report.criticalErrors.push(`Personality "${p.id}" modifierFn did not return a valid object.`);
+                } else {
+                    if (result.trustDelta === undefined || typeof result.trustDelta !== 'number' || Number.isNaN(result.trustDelta) || !Number.isFinite(result.trustDelta)) {
+                        report.criticalErrors.push(`Personality "${p.id}" modifierFn returned invalid trustDelta (non-numeric, NaN, or Infinity): ${result.trustDelta}`);
+                    }
+                    if (result.note === undefined || typeof result.note !== 'string') {
+                        report.criticalErrors.push(`Personality "${p.id}" modifierFn returned missing or non-string reaction note.`);
+                    }
                 }
             } catch (e) {
                 report.criticalErrors.push(`Personality "${p.id}" modifierFn threw an error during test evaluation: ${e.message}`);
@@ -1916,15 +1949,16 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 }
 
 /* ==========================================================================
-   AUTOMATED DEFECT-INJECTION TEST RUNNER
+   AUTOMATED DEFECT-INJECTION TEST RUNNER (PHASE 1.1)
    ========================================================================== */
 function runQADefectInjectionTests() {
     const results = [];
 
+    // Original 6 tests
     // 1. Duplicate Scenario ID
     try {
         const dupScenarios = JSON.parse(JSON.stringify(SCENARIOS));
-        dupScenarios[1].id = dupScenarios[0].id; // duplicate ID
+        dupScenarios[1].id = dupScenarios[0].id;
         const rep = runDeveloperQAReport(dupScenarios, null, null);
         const caught = rep.criticalErrors.some(err => err.includes('Duplicate scenario ID'));
         results.push({ test: 'Duplicate Scenario ID', passed: caught });
@@ -1970,7 +2004,7 @@ function runQADefectInjectionTests() {
         const emptyPm = JSON.parse(JSON.stringify(PHRASE_MEMORY_EXERCISES));
         emptyPm[0].choices = [];
         const rep = runDeveloperQAReport(null, emptyPm, null);
-        const caught = rep.criticalErrors.some(err => err.includes('missing or empty choice array'));
+        const caught = rep.criticalErrors.some(err => err.includes('has missing or empty choice array'));
         results.push({ test: 'Phrase Memory Empty Choice Array', passed: caught });
     } catch (e) {
         results.push({ test: 'Phrase Memory Empty Choice Array', passed: false, error: e.message });
@@ -1985,6 +2019,86 @@ function runQADefectInjectionTests() {
         results.push({ test: 'Personality Without Valid Modifier', passed: caught });
     } catch (e) {
         results.push({ test: 'Personality Without Valid Modifier', passed: false, error: e.message });
+    }
+
+    // --- New Phase 1.1 Tests ---
+    // 7. Ordinary step with empty choices array (must fail)
+    try {
+        const testScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        testScenarios[0].steps[0].choices = [];
+        testScenarios[0].steps[0].id = 'ordinary-step-empty';
+        const rep = runDeveloperQAReport(testScenarios, null, null);
+        const caught = rep.criticalErrors.some(err => err.includes('is an ordinary step with missing or empty choices array'));
+        results.push({ test: 'Ordinary Step with Empty Choices', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Ordinary Step with Empty Choices', passed: false, error: e.message });
+    }
+
+    // 8. Valid terminal step with empty choices (must pass)
+    try {
+        const testScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        testScenarios[0].steps.push({ id: 'end-success', prompt: 'Success', choices: [] });
+        const rep = runDeveloperQAReport(testScenarios, null, null);
+        const hasTerminalError = rep.criticalErrors.some(err => err.includes('end-success') || err.includes('is an ordinary step'));
+        results.push({ test: 'Valid Terminal Step with Empty Choices', passed: !hasTerminalError });
+    } catch (e) {
+        results.push({ test: 'Valid Terminal Step with Empty Choices', passed: false, error: e.message });
+    }
+
+    // 9. Duplicate personality ID
+    try {
+        const testPers = JSON.parse(JSON.stringify(CUSTOMER_PERSONALITIES));
+        testPers[1].id = testPers[0].id;
+        const rep = runDeveloperQAReport(null, null, testPers);
+        const caught = rep.criticalErrors.some(err => err.includes('Duplicate personality ID found'));
+        results.push({ test: 'Duplicate Personality ID', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Duplicate Personality ID', passed: false, error: e.message });
+    }
+
+    // 10. Personality modifier returning NaN trustDelta
+    try {
+        const testPers = JSON.parse(JSON.stringify(CUSTOMER_PERSONALITIES));
+        testPers[0].modifierFn = () => ({ trustDelta: NaN, note: 'NaN test' });
+        const rep = runDeveloperQAReport(null, null, testPers);
+        const caught = rep.criticalErrors.some(err => err.includes('returned invalid trustDelta'));
+        results.push({ test: 'Personality Modifier NaN trustDelta', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Personality Modifier NaN trustDelta', passed: false, error: e.message });
+    }
+
+    // 11. Phrase Memory exercise with no optimal answer (score < 100 for all)
+    try {
+        const testPm = JSON.parse(JSON.stringify(PHRASE_MEMORY_EXERCISES));
+        testPm[0].choices.forEach(c => c.score = 50);
+        const rep = runDeveloperQAReport(null, testPm, null);
+        const caught = rep.criticalErrors.some(err => err.includes('has no choice with a score of 100 or higher'));
+        results.push({ test: 'Phrase Memory No Optimal Answer', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Phrase Memory No Optimal Answer', passed: false, error: e.message });
+    }
+
+    // 12. Phrase Memory exercise with multiple optimal answers (>1 with score >= 100)
+    try {
+        const testPm = JSON.parse(JSON.stringify(PHRASE_MEMORY_EXERCISES));
+        testPm[0].choices[0].score = 100;
+        testPm[0].choices[1].score = 100;
+        const rep = runDeveloperQAReport(null, testPm, null);
+        const caught = rep.warnings.some(warn => warn.includes('has multiple choices') && warn.includes('with a score of 100 or higher'));
+        results.push({ test: 'Phrase Memory Multiple Optimal Answers', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Phrase Memory Multiple Optimal Answers', passed: false, error: e.message });
+    }
+
+    // 13. Missing clarity value
+    try {
+        const testScenarios = JSON.parse(JSON.stringify(SCENARIOS));
+        delete testScenarios[0].steps[0].choices[0].clarity;
+        const rep = runDeveloperQAReport(testScenarios, null, null);
+        const caught = rep.warnings.some(warn => warn.includes('has missing or invalid clarity value'));
+        results.push({ test: 'Missing Clarity Value Warning', passed: caught });
+    } catch (e) {
+        results.push({ test: 'Missing Clarity Value Warning', passed: false, error: e.message });
     }
 
     return results;
@@ -2221,7 +2335,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Phase 1 Upgraded) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Phase 1.1 Corrected) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2229,9 +2343,10 @@ const app = {
                         • Difficulty Distribution: Easy (${qaReport.informational.difficultyCounts.Easy}), Med (${qaReport.informational.difficultyCounts.Medium}), Hard (${qaReport.informational.difficultyCounts.Hard})<br>
                         • Phrase Memory Exercises: <strong>${qaReport.informational.phraseMemoryCount}</strong><br>
                         • Total Choices Inspected: <strong>${qaReport.informational.totalChoicesInspected}</strong><br>
-                        • Scoring Integrity: ${qaReport.informational.completeScoringChoices} complete / ${qaReport.informational.missingScoringChoices} missing<br>
+                        • 6-Dim Scoring Integrity: ${qaReport.informational.completeScoringChoices} complete / ${qaReport.informational.missingScoringChoices} missing<br>
+                        • Clarity Scoring Completeness: ${qaReport.informational.completeClarityChoices} complete / ${qaReport.informational.missingClarityChoices} missing<br>
                         • Customer Personalities: <strong>${qaReport.informational.personalityCount}</strong> loaded<br>
-                        • Answer Position (Scenarios): Pos 1 (${qaReport.informational.answerPositionStats.scenarios.pos1}), Pos 2 (${qaReport.informational.answerPositionStats.scenarios.pos2}), Pos 3 (${qaReport.informational.answerPositionStats.scenarios.pos3})
+                        • Answer Position (Scenarios - Score Estimate): Pos 1 (${qaReport.informational.answerPositionStats.scenarios.pos1}), Pos 2 (${qaReport.informational.answerPositionStats.scenarios.pos2}), Pos 3 (${qaReport.informational.answerPositionStats.scenarios.pos3})
                     </div>
 
                     <div class="qa-section-title" style="color: var(--accent-rose);">2. Critical Errors (${qaReport.criticalErrors.length})</div>
@@ -2244,7 +2359,7 @@ const app = {
                         ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">4. Defect-Injection Verification Suite</div>
+                    <div class="qa-section-title">4. Defect-Injection Verification Suite (13 Tests)</div>
                     <div class="qa-list">
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Defect Tests</button>
                         ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'CAUGHT (PASS)' : 'FAILED'}</strong></div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
