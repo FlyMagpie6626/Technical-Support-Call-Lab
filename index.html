@@ -698,7 +698,7 @@
 
 <script>
 /* ==========================================================================
-   TSCL 2.2 CORE APPLICATION ENGINE (Stage 2.0: Choice Integrity)
+   TSCL 2.2 CORE APPLICATION ENGINE (Stage 2.0.1: Choice Integrity Hardening)
    ========================================================================== */
 
 const STORAGE_KEYS = {
@@ -740,10 +740,12 @@ let currentSession = {
     selectedPersonality: null,
     shuffledChoicesMap: {},
     stateFlags: {},
-    stepVisitCounter: 1,
+    stepVisitCounter: 0,
     activeStepVisitId: null,
     processedVisitIds: {},
-    waitingForContinue: false
+    waitingForContinue: false,
+    pendingContinuationDestination: null,
+    continuationProcessed: false
 };
 
 let logoClickCount = 0;
@@ -796,29 +798,66 @@ function applyChoiceScoring(session, choice) {
 }
 
 /* ==========================================================================
-   CHOICE INTEGRITY HELPER (Stage 2.0)
+   CHOICE INTEGRITY HELPER (Stage 2.0.1 Hardened)
    ========================================================================== */
 function validateAndAcceptChoice(session, stepId, shuffledChoiceIndex) {
+    // 1. Validate session and completion state.
     if (!session || session.callCompleted) {
         return { success: false, reason: 'Session completed or invalid' };
     }
 
+    // 2. Validate step ID.
     if (typeof stepId !== 'string' || !stepId.trim()) {
         return { success: false, reason: 'Invalid stepId string' };
     }
 
+    // 3. Validate scenario and steps.
     if (!session.scenario || !Array.isArray(session.scenario.steps)) {
         return { success: false, reason: 'Invalid scenario or steps' };
     }
 
+    // 4. Validate the active step and its matching ID.
     const currentStep = session.scenario.steps[session.currentStepIndex];
     if (!currentStep || currentStep.id !== stepId) {
         return { success: false, reason: 'Stale step ID or mismatch with current active step' };
     }
 
+    // 5. Validate the shuffled choices array.
+    if (!session.shuffledChoicesMap || !Array.isArray(session.shuffledChoicesMap[stepId])) {
+        return { success: false, reason: 'Missing choices array' };
+    }
+    const choices = session.shuffledChoicesMap[stepId];
+
+    // 6. Validate the integer choice index and bounds.
+    if (!Number.isInteger(shuffledChoiceIndex) || shuffledChoiceIndex < 0 || shuffledChoiceIndex >= choices.length) {
+        return { success: false, reason: 'Choice index out of bounds or non-integer' };
+    }
+
+    // 7. Validate that the selected choice exists.
+    const choice = choices[shuffledChoiceIndex];
+    if (!choice) {
+        return { success: false, reason: 'Selected choice does not exist' };
+    }
+
+    // 8. Determine the active visit token without modifying the session.
+    const prospectiveCounter = (session.stepVisitCounter || 0) + 1;
+    const prospectiveVisitId = session.activeStepVisitId || `${session.currentStepIndex}:${stepId}:${prospectiveCounter}`;
+
+    // 9. Check whether that visit has already been processed.
+    if (session.processedVisitIds && session.processedVisitIds[prospectiveVisitId]) {
+        return { success: false, reason: 'Duplicate submission for active step visit' };
+    }
+
+    // 10. Validate and apply scoring using the existing applyChoiceScoring() helper.
+    const scoringResult = applyChoiceScoring(session, choice);
+    if (!scoringResult.success) {
+        return { success: false, reason: 'Invalid scoring data rejected by applyChoiceScoring' };
+    }
+
+    // Only after all validation and scoring succeed may the helper initialize or update tracking properties and mark the visit as processed.
     if (!session.activeStepVisitId) {
-        session.stepVisitCounter = (session.stepVisitCounter || 0) + 1;
-        session.activeStepVisitId = `${session.currentStepIndex}:${stepId}:${session.stepVisitCounter}`;
+        session.stepVisitCounter = prospectiveCounter;
+        session.activeStepVisitId = prospectiveVisitId;
     }
     if (!session.processedVisitIds) {
         session.processedVisitIds = {};
@@ -827,28 +866,6 @@ function validateAndAcceptChoice(session, stepId, shuffledChoiceIndex) {
     if (session.processedVisitIds[visitId]) {
         return { success: false, reason: 'Duplicate submission for active step visit' };
     }
-
-    if (!session.shuffledChoicesMap || !Array.isArray(session.shuffledChoicesMap[stepId])) {
-        return { success: false, reason: 'Missing choices array' };
-    }
-    const choices = session.shuffledChoicesMap[stepId];
-
-    if (!Number.isInteger(shuffledChoiceIndex) || shuffledChoiceIndex < 0 || shuffledChoiceIndex >= choices.length) {
-        return { success: false, reason: 'Choice index out of bounds or non-integer' };
-    }
-
-    const choice = choices[shuffledChoiceIndex];
-    if (!choice) {
-        return { success: false, reason: 'Selected choice does not exist' };
-    }
-
-    // Apply scoring through existing production helper BEFORE marking step as processed
-    const scoringResult = applyChoiceScoring(session, choice);
-    if (!scoringResult.success) {
-        return { success: false, reason: 'Invalid scoring data rejected by applyChoiceScoring' };
-    }
-
-    // Mark the active step visit as processed only after scoring succeeds
     session.processedVisitIds[visitId] = true;
 
     return { success: true, choice, currentStep };
@@ -1947,7 +1964,7 @@ function runDeveloperQAReport(customScenarios = null, customPhrase = null, custo
 }
 
 /* ==========================================================================
-   AUTOMATED DEFECT-INJECTION & CHOICE INTEGRITY TEST RUNNER (STAGE 2.0)
+   AUTOMATED DEFECT-INJECTION & CHOICE INTEGRITY TEST RUNNER (STAGE 2.0.1)
    ========================================================================== */
 function runQADefectInjectionTests() {
     const results = [];
@@ -2078,7 +2095,7 @@ function runQADefectInjectionTests() {
         results.push({ test: '12. Invalid-State Preservation', passed: false, error: e.message });
     }
 
-    // --- STAGE 2.0 CHOICE INTEGRITY SUITE (Tests 13 to 28 / 1 to 16) ---
+    // --- STAGE 2.0.1 HARDENING SUITE ---
     try {
         const helperTestSession = () => ({
             mode: 'guided',
@@ -2098,121 +2115,129 @@ function runQADefectInjectionTests() {
             shuffledChoicesMap: {
                 'step-A': [{ text: 'A1', scores: { empathy: 50, acknowledgement: 50, reassurance: 50, ownership: 50, technical: 50, safety: 50 }, clarity: 50, feedback: 'FBA', nextStep: 'step-B' }],
                 'step-B': [{ text: 'B1', scores: { empathy: 60, acknowledgement: 60, reassurance: 60, ownership: 60, technical: 60, safety: 60 }, clarity: 60, feedback: 'FBB', nextStep: 'end-success' }]
-            },
-            stepVisitCounter: 1,
-            activeStepVisitId: '0:step-A:1',
-            processedVisitIds: {}
+            }
         });
 
-        // 1. Valid active-step selection accepted
-        const s1 = helperTestSession();
-        const t1 = validateAndAcceptChoice(s1, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 1: Valid active-step selection accepted', passed: t1.success === true });
+        // Hardening Test 1: Missing activeStepVisitId combined with an invalid choice index
+        const sT1 = helperTestSession();
+        const snapT1 = JSON.parse(JSON.stringify(sT1));
+        const resT1 = validateAndAcceptChoice(sT1, 'step-A', -1);
+        results.push({
+            test: 'Hardening 1: Missing activeStepVisitId + invalid choice index rejected without mutation',
+            passed: resT1.success === false &&
+                    sT1.activeStepVisitId === undefined &&
+                    sT1.processedVisitIds === undefined &&
+                    sT1.stepVisitCounter === undefined &&
+                    JSON.stringify(sT1) === JSON.stringify(snapT1)
+        });
 
-        // 2. Second selection for same active step visit rejected
-        const s2 = helperTestSession();
-        validateAndAcceptChoice(s2, 'step-A', 0);
-        const snap2 = JSON.parse(JSON.stringify(s2));
-        const t2 = validateAndAcceptChoice(s2, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 2: Second selection for same visit rejected', passed: t2.success === false && JSON.stringify(s2) === JSON.stringify(snap2) });
+        // Hardening Test 2: Missing processedVisitIds combined with a missing choices array
+        const sT2 = helperTestSession();
+        sT2.shuffledChoicesMap = {};
+        const snapT2 = JSON.parse(JSON.stringify(sT2));
+        const resT2 = validateAndAcceptChoice(sT2, 'step-A', 0);
+        results.push({
+            test: 'Hardening 2: Missing processedVisitIds + missing choices array rejected without mutation',
+            passed: resT2.success === false &&
+                    sT2.processedVisitIds === undefined &&
+                    JSON.stringify(sT2) === JSON.stringify(snapT2)
+        });
 
-        // 3. Stale step ID rejected
-        const s3 = helperTestSession();
-        s3.currentStepIndex = 1;
-        s3.activeStepVisitId = '1:step-B:1';
-        const snap3 = JSON.parse(JSON.stringify(s3));
-        const t3 = validateAndAcceptChoice(s3, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 3: Stale step ID rejected', passed: t3.success === false && JSON.stringify(s3) === JSON.stringify(snap3) });
+        // Hardening Test 3: Missing tracking properties combined with invalid scoring data
+        const sT3 = helperTestSession();
+        sT3.shuffledChoicesMap['step-A'][0].scores.empathy = NaN;
+        const snapT3 = JSON.parse(JSON.stringify(sT3));
+        const resT3 = validateAndAcceptChoice(sT3, 'step-A', 0);
+        results.push({
+            test: 'Hardening 3: Missing tracking properties + invalid scoring data rejected without initialization',
+            passed: resT3.success === false &&
+                    sT3.activeStepVisitId === undefined &&
+                    sT3.processedVisitIds === undefined &&
+                    sT3.stepVisitCounter === undefined &&
+                    JSON.stringify(sT3) === JSON.stringify(snapT3)
+        });
 
-        // 4. Step ID belonging to another step rejected
-        const s4 = helperTestSession();
-        const snap4 = JSON.parse(JSON.stringify(s4));
-        const t4 = validateAndAcceptChoice(s4, 'step-B', 0);
-        results.push({ test: 'Choice Integrity 4: Step ID belonging to another step rejected', passed: t4.success === false && JSON.stringify(s4) === JSON.stringify(snap4) });
+        // Hardening Test 4: A valid selection with missing tracking properties
+        const sT4 = helperTestSession();
+        const resT4 = validateAndAcceptChoice(sT4, 'step-A', 0);
+        results.push({
+            test: 'Hardening 4: Valid selection with missing tracking properties succeeds and initializes once',
+            passed: resT4.success === true &&
+                    typeof sT4.activeStepVisitId === 'string' &&
+                    sT4.processedVisitIds &&
+                    Object.keys(sT4.processedVisitIds).length === 1 &&
+                    sT4.stepVisitCounter === 1
+        });
 
-        // 5. Negative choice index rejected
-        const s5 = helperTestSession();
-        const snap5 = JSON.parse(JSON.stringify(s5));
-        const t5 = validateAndAcceptChoice(s5, 'step-A', -1);
-        results.push({ test: 'Choice Integrity 5: Negative choice index rejected', passed: t5.success === false && JSON.stringify(s5) === JSON.stringify(snap5) });
+        // Hardening Test 5: A second submission after that valid selection
+        const resT5 = validateAndAcceptChoice(sT4, 'step-A', 0);
+        results.push({
+            test: 'Hardening 5: Second submission after valid selection is rejected as duplicate',
+            passed: resT5.success === false
+        });
 
-        // 6. Out-of-range choice index rejected
-        const s6 = helperTestSession();
-        const snap6 = JSON.parse(JSON.stringify(s6));
-        const t6 = validateAndAcceptChoice(s6, 'step-A', 5);
-        results.push({ test: 'Choice Integrity 6: Out-of-range choice index rejected', passed: t6.success === false && JSON.stringify(s6) === JSON.stringify(snap6) });
+        // Hardening Test 6: Correct pending destination is accepted
+        const sT6 = helperTestSession();
+        sT6.mode = 'guided';
+        validateAndAcceptChoice(sT6, 'step-A', 0);
+        sT6.waitingForContinue = true;
+        sT6.pendingContinuationDestination = 'step-B';
+        sT6.continuationProcessed = false;
+        const prevSession = currentSession;
+        currentSession = sT6;
+        app.advanceStep('step-B');
+        const acceptedAdvance = currentSession.currentStepIndex === 1 && currentSession.waitingForContinue === false;
 
-        // 7. Fractional choice index rejected
-        const s7 = helperTestSession();
-        const snap7 = JSON.parse(JSON.stringify(s7));
-        const t7 = validateAndAcceptChoice(s7, 'step-A', 0.5);
-        results.push({ test: 'Choice Integrity 7: Fractional choice index rejected', passed: t7.success === false && JSON.stringify(s7) === JSON.stringify(snap7) });
+        // Hardening Test 7: Incorrect destination is rejected without progression
+        const sT7 = helperTestSession();
+        sT7.mode = 'guided';
+        validateAndAcceptChoice(sT7, 'step-A', 0);
+        sT7.waitingForContinue = true;
+        sT7.pendingContinuationDestination = 'step-B';
+        sT7.continuationProcessed = false;
+        currentSession = sT7;
+        const idxBeforeT7 = currentSession.currentStepIndex;
+        app.advanceStep('wrong-destination');
+        const incorrectRejected = currentSession.currentStepIndex === idxBeforeT7 && currentSession.waitingForContinue === true;
 
-        // 8. Missing choices array rejected
-        const s8 = helperTestSession();
-        s8.shuffledChoicesMap = {};
-        const snap8 = JSON.parse(JSON.stringify(s8));
-        const t8 = validateAndAcceptChoice(s8, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 8: Missing choices array rejected', passed: t8.success === false && JSON.stringify(s8) === JSON.stringify(snap8) });
+        // Hardening Test 8: Repeated continuation is rejected
+        const sT8 = helperTestSession();
+        sT8.mode = 'guided';
+        validateAndAcceptChoice(sT8, 'step-A', 0);
+        sT8.waitingForContinue = true;
+        sT8.pendingContinuationDestination = 'step-B';
+        sT8.continuationProcessed = false;
+        currentSession = sT8;
+        app.advanceStep('step-B');
+        const stepIdxAfterFirst = currentSession.currentStepIndex;
+        app.advanceStep('step-B');
+        const repeatedRejected = currentSession.currentStepIndex === stepIdxAfterFirst;
 
-        // 9. Missing selected choice rejected
-        const s9 = helperTestSession();
-        s9.shuffledChoicesMap['step-A'] = [];
-        const snap9 = JSON.parse(JSON.stringify(s9));
-        const t9 = validateAndAcceptChoice(s9, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 9: Missing selected choice rejected', passed: t9.success === false && JSON.stringify(s9) === JSON.stringify(snap9) });
+        // Hardening Test 9: A new accepted guided choice can establish a new pending continuation
+        const sT9 = helperTestSession();
+        sT9.mode = 'guided';
+        validateAndAcceptChoice(sT9, 'step-A', 0);
+        sT9.waitingForContinue = true;
+        sT9.pendingContinuationDestination = 'step-B';
+        sT9.continuationProcessed = false;
+        currentSession = sT9;
+        app.advanceStep('step-B');
+        validateAndAcceptChoice(currentSession, 'step-B', 0);
+        currentSession.waitingForContinue = true;
+        currentSession.pendingContinuationDestination = 'end-success';
+        currentSession.continuationProcessed = false;
+        app.advanceStep('end-success');
+        const newContinuationAccepted = currentSession.callCompleted === true || currentSession.currentStepIndex >= 1;
 
-        // 10 & 11. Invalid scoring data does not mark step as processed & valid selection afterwards accepted
-        const s10 = helperTestSession();
-        s10.shuffledChoicesMap['step-A'][0].scores.empathy = NaN;
-        const resInvalid = validateAndAcceptChoice(s10, 'step-A', 0);
-        s10.shuffledChoicesMap['step-A'][0].scores.empathy = 50; // fix scoring
-        const resValidAfter = validateAndAcceptChoice(s10, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 10 & 11: Invalid scoring not processed & valid selection accepted after', passed: resInvalid.success === false && resValidAfter.success === true });
+        currentSession = prevSession;
 
-        // 12. Rejected duplicate does not change any scoring accumulator
-        const s12 = helperTestSession();
-        validateAndAcceptChoice(s12, 'step-A', 0);
-        const scoresSnap = JSON.parse(JSON.stringify(s12.scores));
-        validateAndAcceptChoice(s12, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 12: Rejected duplicate changes zero accumulators', passed: JSON.stringify(s12.scores) === JSON.stringify(scoresSnap) });
-
-        // 13. Rejected duplicate does not change totalChoicesMade
-        const s13 = helperTestSession();
-        validateAndAcceptChoice(s13, 'step-A', 0);
-        const totalB = s13.totalChoicesMade;
-        validateAndAcceptChoice(s13, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 13: Rejected duplicate leaves totalChoicesMade unchanged', passed: s13.totalChoicesMade === totalB });
-
-        // 14. Rejected duplicate does not change trust, history, or decision logs
-        const s14 = helperTestSession();
-        validateAndAcceptChoice(s14, 'step-A', 0);
-        const trustB = s14.trustStore;
-        const histLenB = s14.callHistory.length;
-        const logLenB = s14.decisionLog.length;
-        validateAndAcceptChoice(s14, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 14: Rejected duplicate leaves trust, history, logs unchanged', passed: s14.trustStore === trustB && s14.callHistory.length === histLenB && s14.decisionLog.length === logLenB });
-
-        // 15. Legitimate new step can accept its own choice
-        const s15 = helperTestSession();
-        validateAndAcceptChoice(s15, 'step-A', 0);
-        s15.currentStepIndex = 1;
-        s15.stepVisitCounter++;
-        s15.activeStepVisitId = '1:step-B:2';
-        const t15 = validateAndAcceptChoice(s15, 'step-B', 0);
-        results.push({ test: 'Choice Integrity 15: Legitimate new step accepted', passed: t15.success === true });
-
-        // 16. Legitimate revisit can accept a new choice for a new visit
-        const s16 = helperTestSession();
-        validateAndAcceptChoice(s16, 'step-A', 0);
-        s16.currentStepIndex = 0;
-        s16.stepVisitCounter++;
-        s16.activeStepVisitId = '0:step-A:3';
-        const t16 = validateAndAcceptChoice(s16, 'step-A', 0);
-        results.push({ test: 'Choice Integrity 16: Legitimate revisit accepted', passed: t16.success === true });
+        results.push({ test: 'Hardening 6: Correct pending destination accepted', passed: acceptedAdvance });
+        results.push({ test: 'Hardening 7: Incorrect destination rejected without progression', passed: incorrectRejected });
+        results.push({ test: 'Hardening 8: Repeated continuation rejected', passed: repeatedRejected });
+        results.push({ test: 'Hardening 9: New accepted guided choice establishes new continuation', passed: newContinuationAccepted });
 
     } catch (e) {
-        results.push({ test: 'Choice Integrity Suite', passed: false, error: e.message });
+        results.push({ test: 'Hardening Tests Suite', passed: false, error: e.message });
     }
 
     return results;
@@ -2449,7 +2474,7 @@ const app = {
 
             ${qaPanelVisible ? `
                 <div class="qa-panel">
-                    <h3>🛠️ Developer QA Audit Panel (Stage 2.0: Choice Integrity) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
+                    <h3>🛠️ Developer QA Audit Panel (Stage 2.0.1: Hardened) <span style="cursor:pointer;" onclick="app.handleLogoClick()">[Close]</span></h3>
                     
                     <div class="qa-section-title">1. Informational Metrics</div>
                     <div class="qa-list">
@@ -2472,7 +2497,7 @@ const app = {
                         ${qaReport.warnings.length === 0 ? '<span style="color: var(--accent-emerald);">None detected</span>' : qaReport.warnings.map(w => `• ${w}`).join('<br>')}
                     </div>
 
-                    <div class="qa-section-title">4. Defect-Injection & Choice Integrity Verification Suite (Stage 2.0)</div>
+                    <div class="qa-section-title">4. Defect-Injection & Hardening Suite (Stage 2.0.1)</div>
                     <div class="qa-list">
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; margin-bottom: 8px;" onclick="app.runDefectTestsFromUI()">Run In-Memory Test Suite</button>
                         ${this.defectTestResults ? this.defectTestResults.map(t => `<div>• ${t.test}: <strong style="color: ${t.passed ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${t.passed ? 'PASSED' : 'FAILED'}</strong> ${t.error ? `(${t.error})` : ''}</div>`).join('') : '<span style="color: var(--text-muted);">Click button to execute test suite.</span>'}
@@ -2560,7 +2585,7 @@ const app = {
     },
 
     /* ==========================================================================
-       CALL SIMULATOR ENGINE (STAGE 2.0: INTEGRATED WITH CHOICE INTEGRITY)
+       CALL SIMULATOR ENGINE (STAGE 2.0.1)
        ========================================================================== */
     initSimulator(scenarioId, mode) {
         const scenario = SCENARIOS.find(s => s.id === scenarioId) || SCENARIOS[0];
@@ -2587,10 +2612,12 @@ const app = {
             selectedPersonality: personality,
             shuffledChoicesMap: {},
             stateFlags: {},
-            stepVisitCounter: 1,
-            activeStepVisitId: `0:${scenario.steps[0].id}:1`,
+            stepVisitCounter: 0,
+            activeStepVisitId: null,
             processedVisitIds: {},
-            waitingForContinue: false
+            waitingForContinue: false,
+            pendingContinuationDestination: null,
+            continuationProcessed: false
         };
 
         scenario.steps.forEach(step => {
@@ -2669,7 +2696,7 @@ const app = {
     makeChoice(stepId, shuffledChoiceIndex) {
         if (currentSession.callCompleted) return;
 
-        // 1. Validate and accept choice through choice integrity helper & scoring
+        // 1. Validate and accept choice through hardened choice integrity helper & scoring
         const validationResult = validateAndAcceptChoice(currentSession, stepId, shuffledChoiceIndex);
         if (!validationResult.success) {
             const interactionArea = document.getElementById('interaction-area');
@@ -2723,6 +2750,8 @@ const app = {
         // 5. Continue through guided or challenge flow
         if (currentSession.mode === 'guided') {
             currentSession.waitingForContinue = true;
+            currentSession.pendingContinuationDestination = choice.nextStep;
+            currentSession.continuationProcessed = false;
             this.renderGuidedFeedback(choice, pNote);
         } else {
             this.advanceStep(choice.nextStep);
@@ -2748,10 +2777,15 @@ const app = {
         if (currentSession.callCompleted) return;
 
         if (currentSession.mode === 'guided') {
-            if (!currentSession.waitingForContinue) {
-                return; // Guard against multiple rapid clicks on Continue Call
+            if (!currentSession.waitingForContinue || currentSession.continuationProcessed) {
+                return; // Rejected: no pending continuation or already processed
+            }
+            if (nextStepId !== currentSession.pendingContinuationDestination) {
+                return; // Rejected: requested destination does not match pending choice's destination
             }
             currentSession.waitingForContinue = false;
+            currentSession.continuationProcessed = true;
+            currentSession.pendingContinuationDestination = null;
         }
 
         const s = currentSession.scenario;
